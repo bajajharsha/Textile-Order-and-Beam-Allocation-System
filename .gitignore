@@ -1,0 +1,5 @@
+backend/.venv/
+backend/pycache/
+backend/.env
+# ignore all the pycache files in the folder
+*pycache*

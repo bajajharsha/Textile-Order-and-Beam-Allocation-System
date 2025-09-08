@@ -1,0 +1,8 @@
+# FastAPI and ASGI server
+fastapi
+uvicorn[standard]
+pydantic[email]
+pydantic-settings
+supabase
+httpx
+pytz
