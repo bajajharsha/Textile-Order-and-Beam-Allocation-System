@@ -8,6 +8,8 @@ from contextlib import asynccontextmanager
 import uvicorn
 from config.database import database
 from fastapi import FastAPI
+from routes.master_routes import router as master_router
+from routes.order_routes import router as order_router
 from routes.party_routes import router as party_router
 
 
@@ -41,8 +43,9 @@ app = FastAPI(
 )
 
 # Include API routes
-
 app.include_router(party_router, prefix="/api/v1/parties", tags=["parties"])
+app.include_router(master_router, prefix="/api/v1/master", tags=["master-data"])
+app.include_router(order_router, prefix="/api/v1/orders", tags=["orders"])
 
 
 # Root endpoint

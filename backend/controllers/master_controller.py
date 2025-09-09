@@ -1,148 +1,269 @@
 """
-Master data controller for API request handling
-Layer 1: Presentation Layer
+Master Data Controller - API request handlers for Colors, Qualities, Cuts
 """
 
-from typing import Dict, List
-
-from config.logging import get_logger
-from fastapi import Depends, HTTPException
-from models.base import APIResponse, SuccessResponse
-from models.order import Color, Quality
-from services.master_service import MasterDataService
+from fastapi import HTTPException
+from usecases.master_usecase import MasterUseCase
 
 
-class MasterDataController:
-    """Controller for master data API endpoints"""
+class MasterController:
+    """Master data API handlers"""
 
     def __init__(self):
-        self.logger = get_logger("controllers.master_data")
+        self.use_case = MasterUseCase()
 
-    def get_master_service(self) -> MasterDataService:
-        """Dependency to get master data service instance"""
-        return MasterDataService()
-
-    async def get_all_colors(
-        self, master_service: MasterDataService = Depends(get_master_service)
-    ) -> APIResponse[List[Color]]:
-        """Get all active colors"""
+    # Color operations
+    async def create_color(self, color_data: dict) -> dict:
+        """Handle create color request"""
         try:
-            self.logger.debug("Getting all colors")
-
-            colors = await master_service.get_all_colors()
-
-            return SuccessResponse.create(
-                data=colors, message="Colors retrieved successfully"
+            color = await self.use_case.create_color(color_data)
+            return color.to_dict()
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
             )
 
-        except HTTPException as e:
-            self.logger.warning(f"Colors retrieval failed: {e.detail}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error retrieving colors: {str(e)}")
-            raise HTTPException(status_code=500, detail="Internal server error")
-
-    async def get_all_qualities(
-        self, master_service: MasterDataService = Depends(get_master_service)
-    ) -> APIResponse[List[Quality]]:
-        """Get all active qualities"""
+    async def get_color(self, color_id: int) -> dict:
+        """Handle get color request"""
         try:
-            self.logger.debug("Getting all qualities")
-
-            qualities = await master_service.get_all_qualities()
-
-            return SuccessResponse.create(
-                data=qualities, message="Qualities retrieved successfully"
+            color = await self.use_case.get_color(color_id)
+            return color.to_dict()
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
             )
 
-        except HTTPException as e:
-            self.logger.warning(f"Qualities retrieval failed: {e.detail}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error retrieving qualities: {str(e)}")
-            raise HTTPException(status_code=500, detail="Internal server error")
-
-    async def get_all_master_data(
-        self, master_service: MasterDataService = Depends(get_master_service)
-    ) -> APIResponse[Dict]:
-        """Get all master data for forms and dropdowns"""
+    async def update_color(self, color_id: int, update_data: dict) -> dict:
+        """Handle update color request"""
         try:
-            self.logger.debug("Getting all master data")
-
-            master_data = await master_service.get_all_master_data()
-
-            return SuccessResponse.create(
-                data=master_data, message="Master data retrieved successfully"
+            color = await self.use_case.update_color(color_id, update_data)
+            return color.to_dict()
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
             )
 
-        except HTTPException as e:
-            self.logger.warning(f"Master data retrieval failed: {e.detail}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error retrieving master data: {str(e)}")
-            raise HTTPException(status_code=500, detail="Internal server error")
-
-    async def get_color_by_id(
-        self,
-        color_id: int,
-        master_service: MasterDataService = Depends(get_master_service),
-    ) -> APIResponse[Color]:
-        """Get color by ID"""
+    async def delete_color(self, color_id: int) -> dict:
+        """Handle delete color request"""
         try:
-            self.logger.debug(f"Getting color by ID: {color_id}")
-
-            color = await master_service.get_color_by_id(color_id)
-
-            return SuccessResponse.create(
-                data=color, message="Color retrieved successfully"
+            success = await self.use_case.delete_color(color_id)
+            return {"success": success, "message": "Color deleted successfully"}
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
             )
 
-        except HTTPException as e:
-            self.logger.warning(f"Color retrieval failed: {e.detail}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error retrieving color: {str(e)}")
-            raise HTTPException(status_code=500, detail="Internal server error")
-
-    async def get_quality_by_id(
-        self,
-        quality_id: int,
-        master_service: MasterDataService = Depends(get_master_service),
-    ) -> APIResponse[Quality]:
-        """Get quality by ID"""
+    async def list_colors(self, page: int = 1, page_size: int = 20) -> dict:
+        """Handle list colors request"""
         try:
-            self.logger.debug(f"Getting quality by ID: {quality_id}")
-
-            quality = await master_service.get_quality_by_id(quality_id)
-
-            return SuccessResponse.create(
-                data=quality, message="Quality retrieved successfully"
+            result = await self.use_case.list_colors(page, page_size)
+            result["colors"] = [color.to_dict() for color in result["colors"]]
+            return result
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
             )
 
-        except HTTPException as e:
-            self.logger.warning(f"Quality retrieval failed: {e.detail}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error retrieving quality: {str(e)}")
-            raise HTTPException(status_code=500, detail="Internal server error")
-
-    async def initialize_default_data(
-        self, master_service: MasterDataService = Depends(get_master_service)
-    ) -> APIResponse[dict]:
-        """Initialize master data with default values"""
+    async def search_colors(self, query: str, limit: int = 20) -> dict:
+        """Handle search colors request"""
         try:
-            self.logger.info("Initializing default master data")
-
-            success = await master_service.initialize_default_data()
-
-            return SuccessResponse.create(
-                data={"initialized": success},
-                message="Master data initialization completed successfully",
+            colors = await self.use_case.search_colors(query, limit)
+            return {
+                "colors": [color.to_dict() for color in colors],
+                "total": len(colors),
+            }
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
             )
 
-        except HTTPException as e:
-            self.logger.warning(f"Master data initialization failed: {e.detail}")
-            raise
+    async def get_colors_dropdown(self) -> dict:
+        """Handle get colors dropdown request"""
+        try:
+            colors = await self.use_case.get_colors_dropdown()
+            return {"colors": [color.to_dict() for color in colors]}
         except Exception as e:
-            self.logger.error(f"Unexpected error initializing master data: {str(e)}")
-            raise HTTPException(status_code=500, detail="Internal server error")
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    # Quality operations
+    async def create_quality(self, quality_data: dict) -> dict:
+        """Handle create quality request"""
+        try:
+            quality = await self.use_case.create_quality(quality_data)
+            return quality.to_dict()
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def get_quality(self, quality_id: int) -> dict:
+        """Handle get quality request"""
+        try:
+            quality = await self.use_case.get_quality(quality_id)
+            return quality.to_dict()
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def update_quality(self, quality_id: int, update_data: dict) -> dict:
+        """Handle update quality request"""
+        try:
+            quality = await self.use_case.update_quality(quality_id, update_data)
+            return quality.to_dict()
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def delete_quality(self, quality_id: int) -> dict:
+        """Handle delete quality request"""
+        try:
+            success = await self.use_case.delete_quality(quality_id)
+            return {"success": success, "message": "Quality deleted successfully"}
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def list_qualities(self, page: int = 1, page_size: int = 20) -> dict:
+        """Handle list qualities request"""
+        try:
+            result = await self.use_case.list_qualities(page, page_size)
+            result["qualities"] = [quality.to_dict() for quality in result["qualities"]]
+            return result
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def search_qualities(self, query: str, limit: int = 20) -> dict:
+        """Handle search qualities request"""
+        try:
+            qualities = await self.use_case.search_qualities(query, limit)
+            return {
+                "qualities": [quality.to_dict() for quality in qualities],
+                "total": len(qualities),
+            }
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def get_qualities_dropdown(self) -> dict:
+        """Handle get qualities dropdown request"""
+        try:
+            qualities = await self.use_case.get_qualities_dropdown()
+            return {"qualities": [quality.to_dict() for quality in qualities]}
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    # Cut operations
+    async def create_cut(self, cut_data: dict) -> dict:
+        """Handle create cut request"""
+        try:
+            cut = await self.use_case.create_cut(cut_data)
+            return cut.to_dict()
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def get_cut(self, cut_id: int) -> dict:
+        """Handle get cut request"""
+        try:
+            cut = await self.use_case.get_cut(cut_id)
+            return cut.to_dict()
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def update_cut(self, cut_id: int, update_data: dict) -> dict:
+        """Handle update cut request"""
+        try:
+            cut = await self.use_case.update_cut(cut_id, update_data)
+            return cut.to_dict()
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def delete_cut(self, cut_id: int) -> dict:
+        """Handle delete cut request"""
+        try:
+            success = await self.use_case.delete_cut(cut_id)
+            return {"success": success, "message": "Cut deleted successfully"}
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def list_cuts(self, page: int = 1, page_size: int = 20) -> dict:
+        """Handle list cuts request"""
+        try:
+            result = await self.use_case.list_cuts(page, page_size)
+            result["cuts"] = [cut.to_dict() for cut in result["cuts"]]
+            return result
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def search_cuts(self, query: str, limit: int = 20) -> dict:
+        """Handle search cuts request"""
+        try:
+            cuts = await self.use_case.search_cuts(query, limit)
+            return {"cuts": [cut.to_dict() for cut in cuts], "total": len(cuts)}
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def get_cuts_dropdown(self) -> dict:
+        """Handle get cuts dropdown request"""
+        try:
+            cuts = await self.use_case.get_cuts_dropdown()
+            return {"cuts": [cut.to_dict() for cut in cuts]}
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    # Combined dropdown data
+    async def get_dropdown_data(self) -> dict:
+        """Handle get all dropdown data request"""
+        try:
+            return await self.use_case.get_dropdown_data()
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )

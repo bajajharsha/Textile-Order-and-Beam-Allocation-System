@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post("/")
 async def create_party(
     party_data: PartyCreate,
-    party_controller: PartyController = Depends(),
+    party_controller: PartyController = Depends(PartyController),
 ):
     """Create new party"""
     return await party_controller.create_party(party_data.dict())

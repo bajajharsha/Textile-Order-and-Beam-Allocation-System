@@ -2,15 +2,15 @@
 Party Controller - API request handlers
 """
 
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from usecases.party_usecase import PartyUseCase
 
 
 class PartyController:
     """Party API handlers"""
 
-    def __init__(self, party_usecase: PartyUseCase = Depends()):
-        self.party_usecase = party_usecase
+    def __init__(self):
+        self.party_usecase = PartyUseCase()
 
     async def create_party(self, party_data: dict) -> dict:
         """Handle create party request"""
