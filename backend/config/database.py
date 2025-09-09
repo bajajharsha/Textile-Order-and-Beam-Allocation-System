@@ -30,6 +30,7 @@ class SupabaseDB:
 
     async def get_client(self) -> Client:
         """Get Supabase client instance"""
+        print("get_client", self.client)
         if not self.client:
             raise Exception("Supabase client is not connected")
         return self.client

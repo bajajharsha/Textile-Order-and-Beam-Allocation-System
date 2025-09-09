@@ -21,7 +21,7 @@ async def create_party(
 @router.get("/{party_id}")
 async def get_party(
     party_id: int,
-    party_controller: PartyController = Depends(),
+    party_controller: PartyController = Depends(PartyController),
 ):
     """Get party by ID"""
     return await party_controller.get_party(party_id)
@@ -31,7 +31,7 @@ async def get_party(
 async def update_party(
     party_id: int,
     update_data: PartyUpdate,
-    party_controller: PartyController = Depends(),
+    party_controller: PartyController = Depends(PartyController),
 ):
     """Update party"""
     return await party_controller.update_party(party_id, update_data.dict())
@@ -40,7 +40,7 @@ async def update_party(
 @router.delete("/{party_id}")
 async def delete_party(
     party_id: int,
-    party_controller: PartyController = Depends(),
+    party_controller: PartyController = Depends(PartyController),
 ):
     """Delete party"""
     return await party_controller.delete_party(party_id)
@@ -50,7 +50,7 @@ async def delete_party(
 async def list_parties(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    party_controller: PartyController = Depends(),
+    party_controller: PartyController = Depends(PartyController),
 ):
     """List all parties with pagination"""
     return await party_controller.list_parties(page, page_size)
@@ -60,7 +60,7 @@ async def list_parties(
 async def search_parties(
     q: str = Query(..., min_length=2, description="Search query"),
     limit: int = Query(20, ge=1, le=100, description="Maximum results"),
-    party_controller: PartyController = Depends(),
+    party_controller: PartyController = Depends(PartyController),
 ):
     """Search parties"""
     return await party_controller.search_parties(q, limit)

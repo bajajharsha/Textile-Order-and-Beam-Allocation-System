@@ -4,6 +4,7 @@ Party Use Cases - Business Logic
 
 from typing import List
 
+from fastapi import Depends
 from models.domain.party import Party
 from repositories.party_repository import PartyRepository
 from utils.validation_utils import validate_party_data
@@ -12,8 +13,8 @@ from utils.validation_utils import validate_party_data
 class PartyUseCase:
     """Party business logic"""
 
-    def __init__(self, repository: PartyRepository):
-        self.repository = repository
+    def __init__(self, party_repository: PartyRepository = Depends()):
+        self.repository = party_repository
 
     async def create_party(self, party_data: dict) -> Party:
         """Create new party with validation"""
@@ -66,6 +67,7 @@ class PartyUseCase:
 
     async def list_parties(self, page: int = 1, page_size: int = 20) -> dict:
         """List parties with pagination"""
+        print(f"Listing parties with page: {page} and page_size: {page_size}")
         offset = (page - 1) * page_size
         parties = await self.repository.get_all(limit=page_size, offset=offset)
         total_count = await self.repository.count_all()
