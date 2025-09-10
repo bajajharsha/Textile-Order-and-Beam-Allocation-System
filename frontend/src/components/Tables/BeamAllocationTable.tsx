@@ -1,115 +1,221 @@
-import { BarChart3, Package } from 'lucide-react';
-import React from 'react';
-import { BeamColorSummary } from '../../services/api';
+import { BarChart3, Package, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { BeamDetailByQuality, orderApi } from '../../services/api';
 
 interface BeamAllocationTableProps {
-  beamSummary: BeamColorSummary[];
   title?: string;
   showEmpty?: boolean;
+  refreshTrigger?: number;
 }
 
 const BeamAllocationTable: React.FC<BeamAllocationTableProps> = ({ 
-  beamSummary, 
-  title = "Beam Allocation Summary",
-  showEmpty = true 
+  title = "Beam Detail & Summary",
+  showEmpty = true,
+  refreshTrigger = 0
 }) => {
-  const totalPieces = beamSummary.reduce((sum, beam) => sum + beam.total_pieces, 0);
+  const [beamDetails, setBeamDetails] = useState<BeamDetailByQuality[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!beamSummary.length && !showEmpty) {
+  // Load beam details from all orders
+  const loadBeamDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await orderApi.getBeamDetails();
+      setBeamDetails(response.data);
+    } catch (err) {
+      setError('Failed to load beam details');
+      console.error('Error loading beam details:', err);
+      // Show empty state instead of mock data
+      setBeamDetails([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBeamDetails();
+  }, [refreshTrigger]);
+
+  const totalOrders = beamDetails.reduce((sum, quality) => sum + quality.items.length, 0);
+  const totalPieces = beamDetails.reduce((sum, quality) => 
+    sum + quality.items.reduce((itemSum, item) => itemSum + item.total, 0), 0
+  );
+
+  if (!beamDetails.length && !showEmpty) {
     return null;
   }
 
   return (
     <div className="card">
       <div className="card-header">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="text-primary" size={20} />
-          <h2 className="card-title">{title}</h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="text-primary" size={20} />
+            <h2 className="card-title">{title}</h2>
+          </div>
+          <button
+            onClick={loadBeamDetails}
+            disabled={loading}
+            className="btn btn-sm btn-secondary"
+            title="Refresh beam details"
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
         <p className="card-description">
-          Automatic calculation based on ground colors, beam colors, and design count
+          Beam allocation details grouped by quality for all orders
         </p>
       </div>
 
-      {beamSummary.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-8">
+          <div className="loading"></div>
+          <span className="ml-2">Loading beam details...</span>
+        </div>
+      ) : error ? (
+        <div className="text-center py-8 text-red-600">
+          <Package size={48} className="mx-auto mb-4 opacity-50" />
+          <p className="text-lg mb-2">{error}</p>
+          <button onClick={loadBeamDetails} className="btn btn-sm btn-primary">
+            Try Again
+          </button>
+        </div>
+      ) : beamDetails.length === 0 ? (
         <div className="text-center py-8 text-secondary">
           <Package size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-lg mb-2">No beam allocation calculated yet</p>
+          <p className="text-lg mb-2">No beam details available</p>
           <p className="text-sm">
-            Fill in the order form and click "Preview Beam Allocation" to see the calculation
+            Create orders to see beam allocation calculations here
           </p>
         </div>
       ) : (
         <>
-          <div className="table-container">
-            <table className="table">
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
                 <tr>
-                  <th>Beam Color</th>
-                  <th className="text-center">Total Pieces</th>
-                  <th className="text-center">Percentage</th>
-                  <th className="text-center">Status</th>
+                  <th className="text-left">Party Name</th>
+                  <th className="text-left">Quality</th>
+                  <th className="text-left">Color Per Beam</th>
+                  <th className="text-center">Red</th>
+                  <th className="text-center">Firozi</th>
+                  <th className="text-center">Gold</th>
+                  <th className="text-center">Royal Blue</th>
+                  <th className="text-center">Black</th>
+                  <th className="text-center">White</th>
+                  <th className="text-center">Total</th>
                 </tr>
               </thead>
               <tbody>
-                {beamSummary.map((beam, index) => {
-                  const percentage = totalPieces > 0 ? ((beam.total_pieces / totalPieces) * 100).toFixed(1) : '0.0';
-                  
-                  return (
-                    <tr key={beam.beam_color_id || index}>
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-4 h-4 rounded-full border-2 border-border"
-                            style={{ 
-                              backgroundColor: getColorForBeam(beam.beam_color_name),
-                            }}
-                          />
-                          <span className="font-medium">{beam.beam_color_name}</span>
-                        </div>
-                      </td>
-                      <td className="text-center">
-                        <span className="font-semibold text-lg">{beam.total_pieces.toLocaleString()}</span>
-                      </td>
-                      <td className="text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-16 bg-border rounded-full h-2 overflow-hidden">
-                            <div 
-                              className="h-full bg-primary transition-all duration-500"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                          <span className="text-sm font-medium">{percentage}%</span>
-                        </div>
-                      </td>
-                      <td className="text-center">
-                        <span className={`status-badge ${beam.total_pieces > 0 ? 'status-active' : 'status-inactive'}`}>
-                          {beam.total_pieces > 0 ? 'Active' : 'No Pieces'}
-                        </span>
+                {beamDetails.map((qualityGroup, groupIndex) => (
+                  <React.Fragment key={qualityGroup.quality_name}>
+                    {/* Quality Section Header */}
+                    <tr className="quality-section-header">
+                      <td colSpan={10} className="py-3 px-4 font-semibold text-primary bg-primary/5">
+                        {qualityGroup.quality_name}
                       </td>
                     </tr>
-                  );
-                })}
+                    {/* Quality Items */}
+                    {qualityGroup.items.map((item, itemIndex) => (
+                      <tr key={`${groupIndex}-${itemIndex}`} className="border-b border-border/50">
+                        <td className="py-3 px-4">
+                          <div className="font-medium">{item.party_name}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="text-sm text-secondary">{item.quality_name}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-mono text-sm bg-surface-hover px-2 py-1 rounded">
+                            {item.color_per_beam}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <ColorCell value={item.colors.red} />
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <ColorCell value={item.colors.firozi} />
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <ColorCell value={item.colors.gold} />
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <ColorCell value={item.colors.royal_blue} />
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <ColorCell value={item.colors.black} />
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <ColorCell value={item.colors.white} />
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <div className="font-semibold text-primary">
+                            {item.total.toLocaleString()}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {/* Quality Subtotal */}
+                    {qualityGroup.items.length > 1 && (
+                      <tr className="quality-subtotal bg-surface-hover/50">
+                        <td colSpan={3} className="py-2 px-4 font-medium text-right">
+                          {qualityGroup.quality_name} Subtotal:
+                        </td>
+                        <td className="py-2 px-4 text-center font-medium">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.colors.red, 0).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-4 text-center font-medium">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.colors.firozi, 0).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-4 text-center font-medium">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.colors.gold, 0).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-4 text-center font-medium">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.colors.royal_blue, 0).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-4 text-center font-medium">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.colors.black, 0).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-4 text-center font-medium">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.colors.white, 0).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-4 text-center font-semibold text-primary">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.total, 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
               </tbody>
             </table>
           </div>
 
           {/* Summary Footer */}
           <div className="mt-6 p-4 bg-surface-hover rounded-lg border border-border">
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-4 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-primary">{beamSummary.length}</div>
-                <div className="text-sm text-secondary">Beam Colors</div>
+                <div className="text-2xl font-bold text-primary">{beamDetails.length}</div>
+                <div className="text-sm text-secondary">Qualities</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-success">{totalPieces.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-success">{totalOrders}</div>
+                <div className="text-sm text-secondary">Orders</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-warning">{totalPieces.toLocaleString()}</div>
                 <div className="text-sm text-secondary">Total Pieces</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-warning">
-                  {beamSummary.filter(b => b.total_pieces > 0).length}
+                <div className="text-2xl font-bold text-info">
+                  {beamDetails.reduce((sum, quality) => 
+                    sum + quality.items.reduce((itemSum, item) => 
+                      itemSum + Object.values(item.colors).filter(v => v > 0).length, 0
+                    ), 0
+                  )}
                 </div>
-                <div className="text-sm text-secondary">Active Beams</div>
+                <div className="text-sm text-secondary">Active Colors</div>
               </div>
             </div>
           </div>
@@ -123,7 +229,7 @@ const BeamAllocationTable: React.FC<BeamAllocationTableProps> = ({
               <div className="text-sm">
                 <div className="font-medium text-primary mb-1">Calculation Formula:</div>
                 <div className="text-secondary">
-                  Total Pieces = (Pieces per Color × Number of Designs × Beam Color Count)
+                  Total Pieces = Units × Total Designs × Beam Color Count
                 </div>
               </div>
             </div>
@@ -134,61 +240,18 @@ const BeamAllocationTable: React.FC<BeamAllocationTableProps> = ({
   );
 };
 
-// Helper function to generate colors for beam visualization
-const getColorForBeam = (colorName: string): string => {
-  const colorMap: Record<string, string> = {
-    'Red': '#ef4444',
-    'Blue': '#3b82f6',
-    'Green': '#10b981',
-    'Yellow': '#f59e0b',
-    'Purple': '#8b5cf6',
-    'Pink': '#ec4899',
-    'Orange': '#f97316',
-    'Teal': '#14b8a6',
-    'Indigo': '#6366f1',
-    'Gray': '#6b7280',
-    'Black': '#1f2937',
-    'White': '#f9fafb',
-    'Brown': '#a3a3a3',
-    'Cyan': '#06b6d4',
-    'Lime': '#84cc16',
-    'Amber': '#f59e0b',
-    'Emerald': '#059669',
-    'Rose': '#f43f5e',
-    'Violet': '#7c3aed',
-    'Sky': '#0ea5e9',
-    'Firozi': '#0ea5e9',
-    'Gold': '#f59e0b',
-    'Royal Blue': '#1e40af'
-  };
-
-  // Try to find exact match first
-  const exactMatch = Object.keys(colorMap).find(key => 
-    key.toLowerCase() === colorName.toLowerCase()
+// Helper component to display color values
+const ColorCell: React.FC<{ value: number }> = ({ value }) => {
+  if (value === 0) {
+    return <div className="text-gray-400">-</div>;
+  }
+  
+  return (
+    <div className="font-medium">
+      {value.toLocaleString()}
+    </div>
   );
-  
-  if (exactMatch) {
-    return colorMap[exactMatch];
-  }
-
-  // Try partial match
-  const partialMatch = Object.keys(colorMap).find(key => 
-    colorName.toLowerCase().includes(key.toLowerCase()) || 
-    key.toLowerCase().includes(colorName.toLowerCase())
-  );
-  
-  if (partialMatch) {
-    return colorMap[partialMatch];
-  }
-
-  // Generate a color based on string hash
-  let hash = 0;
-  for (let i = 0; i < colorName.length; i++) {
-    hash = colorName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  
-  const hue = hash % 360;
-  return `hsl(${hue}, 70%, 50%)`;
 };
+
 
 export default BeamAllocationTable;

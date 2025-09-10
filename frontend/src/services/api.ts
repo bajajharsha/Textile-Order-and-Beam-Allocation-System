@@ -67,14 +67,14 @@ export interface Cut {
 }
 
 export interface GroundColorItem {
-  ground_color_id: number;
+  ground_color_name: string;
   beam_color_id: number;
-  pieces_per_color: number;
 }
 
 export interface OrderCreate {
   party_id: number;
   quality_id: number;
+  units: number;
   cuts: string[];
   design_numbers: string[];
   ground_colors: GroundColorItem[];
@@ -88,11 +88,32 @@ export interface BeamColorSummary {
   total_pieces: number;
 }
 
+export interface BeamDetailItem {
+  party_name: string;
+  quality_name: string;
+  color_per_beam: string;
+  colors: {
+    red: number;
+    firozi: number;
+    gold: number;
+    royal_blue: number;
+    black: number;
+    white: number;
+  };
+  total: number;
+}
+
+export interface BeamDetailByQuality {
+  quality_name: string;
+  items: BeamDetailItem[];
+}
+
 export interface OrderResponse {
   id: number;
   order_number: string;
   party_id: number;
   quality_id: number;
+  units: number;
   order_date: string;
   rate_per_piece: number;
   total_designs: number;
@@ -160,10 +181,14 @@ export const orderApi = {
     api.post<OrderResponse>('/orders', data),
   
   calculateBeamPreview: (data: {
+    units: number;
     ground_colors: GroundColorItem[];
     design_numbers: string[];
   }) => 
     api.post<{ beam_summary: BeamColorSummary[] }>('/orders/preview', data),
+  
+  getBeamDetails: () => 
+    api.get<BeamDetailByQuality[]>('/orders/beam-details'),
   
   update: (id: number, data: Partial<OrderCreate>) => 
     api.put<OrderResponse>(`/orders/${id}`, data),

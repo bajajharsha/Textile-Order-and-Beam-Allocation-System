@@ -123,7 +123,8 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
                 <th>Order #</th>
                 <th>Party ID</th>
                 <th>Quality ID</th>
-                <th>Rate/Piece</th>
+                <th>Units</th>
+                <th>Rate/Piece (₹)</th>
                 <th>Designs</th>
                 <th>Total Pieces</th>
                 <th>Total Value</th>
@@ -135,14 +136,14 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-8">
+                  <td colSpan={11} className="text-center py-8">
                     <div className="loading"></div>
                     <span className="ml-2">Loading orders...</span>
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-8 text-gray-500">
+                  <td colSpan={11} className="text-center py-8 text-gray-500">
                     No orders found
                   </td>
                 </tr>
@@ -159,7 +160,10 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
                       <div>Quality #{order.quality_id || 'N/A'}</div>
                     </td>
                     <td className="py-3 px-4">
-                      <div>{formatCurrency(order.rate_per_piece || 0)}</div>
+                      <div className="font-medium">{order.units || 'N/A'}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div>₹{(order.rate_per_piece || 0).toFixed(2)}</div>
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-medium">{order.total_designs}</div>

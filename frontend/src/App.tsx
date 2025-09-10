@@ -211,8 +211,8 @@ function App() {
             </div>
             <div className="container">
               <BeamAllocationTable 
-                beamSummary={beamSummary}
-                title="Current Beam Allocation"
+                title="Beam Detail & Summary"
+                refreshTrigger={orderRefreshTrigger}
               />
             </div>
           </div>

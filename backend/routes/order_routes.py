@@ -16,6 +16,7 @@ router = APIRouter()
 class BeamPreviewRequest(BaseModel):
     """Schema for beam calculation preview"""
 
+    units: int
     ground_colors: List[dict]
     design_numbers: List[str]
 
@@ -30,6 +31,15 @@ async def create_order(
 ):
     """Create new order"""
     return await order_controller.create_order(order_data.dict())
+
+
+@router.get("/beam-details/")
+@router.get("/beam-details")
+async def get_beam_details(
+    order_controller: OrderController = Depends(OrderController),
+):
+    """Get beam allocation details for all orders grouped by quality"""
+    return await order_controller.get_beam_details()
 
 
 @router.get("/{order_id}")
@@ -83,6 +93,7 @@ async def calculate_beam_preview(
 ):
     """Calculate beam summary preview before saving order"""
     return await order_controller.calculate_beam_preview(
+        preview_data.units,
         preview_data.ground_colors,
         preview_data.design_numbers,
     )

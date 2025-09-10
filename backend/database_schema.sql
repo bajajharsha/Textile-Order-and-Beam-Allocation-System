@@ -51,6 +51,7 @@ CREATE TABLE orders (
     order_number VARCHAR(50) NOT NULL UNIQUE,
     party_id INTEGER REFERENCES parties(id),
     quality_id INTEGER REFERENCES qualities(id),
+    units INTEGER NOT NULL DEFAULT 0,
     order_date DATE DEFAULT CURRENT_DATE,
     rate_per_piece DECIMAL(10,2) NOT NULL,
     total_designs INTEGER DEFAULT 0,
@@ -76,9 +77,8 @@ CREATE TABLE order_items (
     id SERIAL PRIMARY KEY,
     order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
     design_number VARCHAR(50) NOT NULL,
-    ground_color_id INTEGER REFERENCES colors(id),
+    ground_color_name VARCHAR(100) NOT NULL,
     beam_color_id INTEGER REFERENCES colors(id),
-    pieces_per_color INTEGER NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW()
 );

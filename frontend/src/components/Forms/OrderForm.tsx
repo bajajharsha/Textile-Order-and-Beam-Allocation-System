@@ -25,6 +25,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
   const [formData, setFormData] = useState({
     party_id: '',
     quality_id: '',
+    units: '',
     cuts: [] as string[],
     design_numbers: [''],
     rate_per_piece: '',
@@ -32,7 +33,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
   });
 
   const [groundColors, setGroundColors] = useState<GroundColorItem[]>([
-    { ground_color_id: 0, beam_color_id: 0, pieces_per_color: 0 }
+    { ground_color_name: '', beam_color_id: 0 }
   ]);
 
   const [beamPreview, setBeamPreview] = useState<BeamColorSummary[]>([]);
@@ -97,7 +98,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
     }
   };
 
-  const handleGroundColorChange = (index: number, field: keyof GroundColorItem, value: number) => {
+  const handleGroundColorChange = (index: number, field: keyof GroundColorItem, value: string | number) => {
     const newGroundColors = [...groundColors];
     newGroundColors[index] = { ...newGroundColors[index], [field]: value };
     setGroundColors(newGroundColors);
@@ -106,7 +107,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
   const addGroundColor = () => {
     setGroundColors(prev => [
       ...prev,
-      { ground_color_id: 0, beam_color_id: 0, pieces_per_color: 0 }
+      { ground_color_name: '', beam_color_id: 0 }
     ]);
   };
 
@@ -116,28 +117,65 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
     }
   };
 
+  // Helper function to calculate beam color counts
+  const calculateBeamColorCounts = (groundColors: GroundColorItem[], colors: any[]) => {
+    const beamColorCounts: Record<number, number> = {};
+    
+    // Count how many times each beam color is selected
+    groundColors.forEach(gc => {
+      if (gc.beam_color_id > 0) {
+        beamColorCounts[gc.beam_color_id] = (beamColorCounts[gc.beam_color_id] || 0) + 1;
+      }
+    });
+
+    // Create beam summary with proper calculation
+    const units = parseInt(formData.units) || 0;
+    const totalDesigns = formData.design_numbers.filter(d => d.trim()).length;
+    
+    const beamSummary: BeamColorSummary[] = Object.entries(beamColorCounts).map(([colorId, count]) => {
+      const color = colors?.find(c => c.id === parseInt(colorId));
+      const totalPieces = units * totalDesigns * count;
+      
+      return {
+        beam_color_id: parseInt(colorId),
+        beam_color_name: color ? `${color.color_name} (${color.color_code})` : `Color ${colorId}`,
+        total_pieces: totalPieces
+      };
+    });
+
+    return beamSummary;
+  };
+
   const calculateBeamPreview = async () => {
-    if (!formData.design_numbers.some(d => d.trim()) || !groundColors.some(g => g.pieces_per_color > 0)) {
+    if (!formData.design_numbers.some(d => d.trim()) || !groundColors.some(g => g.ground_color_name.trim() && g.beam_color_id > 0)) {
       alert('Please enter design numbers and ground color details');
+      return;
+    }
+
+    if (!formData.units || parseInt(formData.units) <= 0) {
+      alert('Please enter a valid number of units');
       return;
     }
 
     setCalculatingBeam(true);
     try {
-      const validGroundColors = groundColors.filter(g => g.ground_color_id > 0 && g.beam_color_id > 0);
+      const validGroundColors = groundColors.filter(g => g.ground_color_name.trim() && g.beam_color_id > 0);
       const validDesignNumbers = formData.design_numbers.filter(d => d.trim());
       
       if (validGroundColors.length === 0) {
-        alert('Please select valid ground colors and beam colors');
+        alert('Please enter valid ground colors and select beam colors');
         return;
       }
 
+      // Use backend calculation
       const response = await orderApi.calculateBeamPreview({
+        units: parseInt(formData.units),
         ground_colors: validGroundColors,
         design_numbers: validDesignNumbers
       });
-
+      
       setBeamPreview(response.data.beam_summary);
+      
       if (onBeamCalculated) {
         onBeamCalculated(response.data.beam_summary);
       }
@@ -156,10 +194,13 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
     if (!formData.quality_id) newErrors.quality_id = 'Please select a quality';
     if (formData.cuts.length === 0) newErrors.cuts = 'Please select at least one cut';
     if (!formData.design_numbers.some(d => d.trim())) newErrors.design_numbers = 'Please enter at least one design number';
+    if (!formData.units || parseInt(formData.units) <= 0) {
+      newErrors.units = 'Please enter a valid number of units';
+    }
     if (!formData.rate_per_piece || parseFloat(formData.rate_per_piece) <= 0) {
       newErrors.rate_per_piece = 'Please enter a valid rate per piece';
     }
-    if (!groundColors.some(g => g.ground_color_id > 0 && g.beam_color_id > 0 && g.pieces_per_color > 0)) {
+    if (!groundColors.some(g => g.ground_color_name.trim() && g.beam_color_id > 0)) {
       newErrors.ground_colors = 'Please add at least one valid ground color entry';
     }
 
@@ -174,12 +215,13 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
 
     setLoading(true);
     try {
-      const validGroundColors = groundColors.filter(g => g.ground_color_id > 0 && g.beam_color_id > 0);
+      const validGroundColors = groundColors.filter(g => g.ground_color_name.trim() && g.beam_color_id > 0);
       const validDesignNumbers = formData.design_numbers.filter(d => d.trim());
 
       const orderData: OrderCreate = {
         party_id: parseInt(formData.party_id),
         quality_id: parseInt(formData.quality_id),
+        units: parseInt(formData.units),
         cuts: formData.cuts,
         design_numbers: validDesignNumbers,
         ground_colors: validGroundColors,
@@ -200,12 +242,13 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
       setFormData({
         party_id: '',
         quality_id: '',
+        units: '',
         cuts: [],
         design_numbers: [''],
         rate_per_piece: '',
         notes: ''
       });
-      setGroundColors([{ ground_color_id: 0, beam_color_id: 0, pieces_per_color: 0 }]);
+      setGroundColors([{ ground_color_name: '', beam_color_id: 0 }]);
       setBeamPreview([]);
       
     } catch (error: any) {
@@ -235,8 +278,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
     <div className="card">
       <div className="card-header">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="text-primary" size={20} />
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="text-primary" size={20} />
             <h2 className="card-title">{editOrder ? 'Edit Order' : 'Create New Order'}</h2>
           </div>
           {onCancel && (
@@ -257,7 +300,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Order Info */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="form-group">
             <label htmlFor="party_id" className="form-label">
               Party Name *
@@ -300,6 +343,24 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
                ))}
             </select>
             {errors.quality_id && <p className="text-error text-sm mt-1">{errors.quality_id}</p>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="units" className="form-label">
+              Units *
+            </label>
+            <input
+              type="number"
+              id="units"
+              name="units"
+              value={formData.units}
+              onChange={handleInputChange}
+              className={`form-input ${errors.units ? 'border-error' : ''}`}
+              placeholder="Enter number of units"
+              min="1"
+              disabled={loading}
+            />
+            {errors.units && <p className="text-error text-sm mt-1">{errors.units}</p>}
           </div>
         </div>
 
@@ -382,22 +443,17 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
           </div>
           <div className="space-y-3">
             {groundColors.map((groundColor, index) => (
-              <div key={index} className="grid grid-cols-4 gap-2 items-end">
+              <div key={index} className="grid grid-cols-3 gap-2 items-end">
                 <div>
-                  <label className="form-label text-sm">Ground Color</label>
-                  <select
-                    value={groundColor.ground_color_id}
-                    onChange={(e) => handleGroundColorChange(index, 'ground_color_id', parseInt(e.target.value))}
-                    className="form-select"
+                  <label className="form-label text-sm">Ground Color Name</label>
+                  <input
+                    type="text"
+                    value={groundColor.ground_color_name}
+                    onChange={(e) => handleGroundColorChange(index, 'ground_color_name', e.target.value)}
+                    className="form-input"
+                    placeholder="Enter ground color name"
                     disabled={loading}
-                  >
-                     <option value={0}>Select Ground Color</option>
-                     {(dropdownData.colors || []).map(color => (
-                       <option key={color.id} value={color.id}>
-                         {color.color_name} ({color.color_code})
-                       </option>
-                     ))}
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className="form-label text-sm">Beam Color</label>
@@ -408,23 +464,12 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
                     disabled={loading}
                   >
                      <option value={0}>Select Beam Color</option>
-                     {(dropdownData.colors || []).map(color => (
+                     {(dropdownData?.colors || []).map(color => (
                        <option key={color.id} value={color.id}>
                          {color.color_name} ({color.color_code})
                        </option>
                      ))}
                   </select>
-                </div>
-                <div>
-                  <label className="form-label text-sm">Pieces per Color</label>
-                  <input
-                    type="number"
-                    value={groundColor.pieces_per_color}
-                    onChange={(e) => handleGroundColorChange(index, 'pieces_per_color', parseInt(e.target.value) || 0)}
-                    className="form-input"
-                    min="0"
-                    disabled={loading}
-                  />
                 </div>
                 <div>
                   {groundColors.length > 1 && (
@@ -456,7 +501,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
             value={formData.rate_per_piece}
             onChange={handleInputChange}
             className={`form-input ${errors.rate_per_piece ? 'border-error' : ''}`}
-            placeholder="Enter rate per piece"
+            placeholder="Enter rate per piece (₹)"
             min="0"
             step="0.01"
             disabled={loading}

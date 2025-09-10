@@ -79,15 +79,24 @@ class OrderController:
             )
 
     async def calculate_beam_preview(
-        self, ground_colors: list, design_numbers: list
+        self, units: int, ground_colors: list, design_numbers: list
     ) -> dict:
         """Handle beam calculation preview request"""
         try:
             return await self.use_case.calculate_beam_preview(
-                ground_colors, design_numbers
+                units, ground_colors, design_numbers
             )
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    async def get_beam_details(self) -> list:
+        """Handle get beam details request"""
+        try:
+            return await self.use_case.get_beam_details()
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"Internal server error: {str(e)}"

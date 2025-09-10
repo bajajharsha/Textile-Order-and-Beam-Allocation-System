@@ -84,26 +84,40 @@ class CalculationService:
             self.logger.error(f"Error calculating order totals: {str(e)}")
             return {"total_pieces": 0, "total_designs": 0, "total_value": Decimal("0")}
 
-    def suggest_beam_color(self, ground_color_id: int) -> int:
+    def suggest_beam_color(self, ground_color_name: str) -> int:
         """
-        Auto-suggest beam color based on ground color
-        Simple logic: same as ground color for now
+        Auto-suggest beam color based on ground color name
+        Simple logic: suggest Red color (ID=1) as default
         Can be enhanced with business rules later
         """
         try:
-            # For now, suggest the same color as ground color
-            # This can be enhanced with more sophisticated business logic
-            suggested_color = ground_color_id
+            # Simple mapping based on color name keywords
+            color_mapping = {
+                "red": 1,  # Red
+                "black": 2,  # Black
+                "blue": 5,  # Royal Blue
+                "green": 7,  # Green
+                "white": 6,  # White
+                "gold": 4,  # Gold
+            }
+
+            ground_color_lower = ground_color_name.lower()
+            for keyword, color_id in color_mapping.items():
+                if keyword in ground_color_lower:
+                    return color_id
+
+            # Default to Red if no match found
+            suggested_color = 1  # Red
 
             self.logger.debug(
-                f"Beam color suggestion: ground_color_id={ground_color_id} -> beam_color_id={suggested_color}"
+                f"Beam color suggestion: ground_color_name={ground_color_name} -> beam_color_id={suggested_color}"
             )
 
             return suggested_color
 
         except Exception as e:
             self.logger.error(f"Error suggesting beam color: {str(e)}")
-            return ground_color_id  # Fallback to ground color
+            return 1  # Fallback to Red
 
     def generate_quality_wise_summary(
         self, orders_data: List[Dict[str, Any]]

@@ -45,13 +45,12 @@ class OrderItemBase(BaseModel):
     design_number: str = Field(
         ..., min_length=1, max_length=50, description="Design number/identifier"
     )
-    ground_color_id: int = Field(
-        ..., gt=0, description="Ground color ID from colors master"
+    ground_color_name: str = Field(
+        ..., min_length=1, description="Ground color name (manually entered)"
     )
     beam_color_id: int = Field(
         ..., gt=0, description="Beam color ID from colors master"
     )
-    pieces_per_color: int = Field(..., gt=0, description="Number of pieces per color")
     designs_per_beam: int = Field(
         default=1, gt=0, description="Number of designs per beam"
     )

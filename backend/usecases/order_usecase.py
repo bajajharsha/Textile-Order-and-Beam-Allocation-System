@@ -2,6 +2,7 @@
 Order Use Cases - Business Logic
 """
 
+import logging
 from typing import Any, Dict, List
 
 from models.domain.order import Order
@@ -15,6 +16,7 @@ class OrderUseCase:
     def __init__(self):
         self.order_repository = OrderRepository()
         self.color_repository = ColorRepository()
+        self.logger = logging.getLogger(__name__)
 
     async def create_order(self, order_data: dict) -> Order:
         """Create new order with validation and calculations"""
@@ -44,7 +46,7 @@ class OrderUseCase:
 
         # Calculate beam summary and colors
         beam_summary, beam_colors = await self._calculate_beam_details(
-            order_items, order.total_designs, order_data.get("pieces_per_color", 0)
+            order_items, order.total_designs
         )
 
         # Build response
@@ -113,49 +115,54 @@ class OrderUseCase:
 
     async def calculate_beam_preview(
         self,
+        units: int,
         ground_colors: List[Dict],
         design_numbers: List[str],
     ) -> Dict[str, Any]:
-        """Calculate beam summary preview for order creation"""
+        """Calculate beam summary preview for order creation using new formula"""
         total_designs = len(design_numbers)
 
-        # Create mock order items for calculation
-        mock_items = []
-        for design in design_numbers:
-            for ground_color in ground_colors:
-                mock_item = {
-                    "design_number": design,
-                    "ground_color_id": ground_color["ground_color_id"],
-                    "beam_color_id": ground_color["beam_color_id"],
-                    "pieces_per_color": ground_color["pieces_per_color"],
+        # Count beam color occurrences
+        beam_color_counts = {}
+        for ground_color in ground_colors:
+            beam_color_id = ground_color["beam_color_id"]
+            beam_color_counts[beam_color_id] = (
+                beam_color_counts.get(beam_color_id, 0) + 1
+            )
+
+        # Create beam summary using new calculation
+        beam_colors = []
+        beam_summary = {}
+
+        for beam_color_id, count in beam_color_counts.items():
+            # Get color information
+            color = await self.color_repository.get_by_id(beam_color_id)
+            if color:
+                # Calculate pieces: Units × Total Designs × Beam Color Count
+                calculated_pieces = units * total_designs * count
+
+                beam_color_info = {
+                    "beam_color_id": beam_color_id,
+                    "beam_color_name": f"{color.color_name} ({color.color_code})",
+                    "total_pieces": calculated_pieces,
                 }
-                mock_items.append(mock_item)
+                beam_colors.append(beam_color_info)
+                beam_summary[color.color_code] = count
 
-        # Convert to domain objects for calculation
-        from models.domain.order import OrderItem
-
-        order_items = [OrderItem.from_dict(item) for item in mock_items]
-
-        # Calculate beam details
-        beam_summary, beam_colors = await self._calculate_beam_details(
-            order_items, total_designs
-        )
-
-        # Calculate totals
-        total_pieces = sum([color["calculated_pieces"] for color in beam_colors])
+        # Calculate total pieces
+        total_pieces = sum([color["total_pieces"] for color in beam_colors])
 
         return {
             "total_designs": total_designs,
-            "beam_summary": beam_summary,
-            "beam_colors": beam_colors,
+            "beam_summary": beam_colors,  # Return the beam colors array for frontend
             "total_pieces": total_pieces,
         }
 
     async def _validate_colors(self, ground_colors: List[Dict]) -> None:
-        """Validate that ground colors and beam colors exist"""
+        """Validate that beam colors exist"""
         color_ids = set()
         for ground_color in ground_colors:
-            color_ids.add(ground_color["ground_color_id"])
+            # Only validate beam_color_id since ground_color_name is manual entry
             color_ids.add(ground_color["beam_color_id"])
 
         # Check if all colors exist
@@ -164,41 +171,110 @@ class OrderUseCase:
             if not color:
                 raise ValueError(f"Color with ID {color_id} not found")
 
+    async def get_beam_details(self) -> List[Dict]:
+        """Get beam allocation details for all orders grouped by quality"""
+        try:
+            # Get all active orders with their related data
+            orders = await self.order_repository.get_all_orders()
+
+            if not orders:
+                return []
+
+            # Group orders by quality
+            quality_groups = {}
+
+            for order in orders:
+                quality_name = (
+                    order.quality_name
+                    if hasattr(order, "quality_name")
+                    else f"Quality {order.quality_id}"
+                )
+                party_name = (
+                    order.party_name
+                    if hasattr(order, "party_name")
+                    else f"Party {order.party_id}"
+                )
+
+                if quality_name not in quality_groups:
+                    quality_groups[quality_name] = []
+
+                # Get order items to calculate beam colors
+                order_items = await self.order_repository.get_order_items(order.id)
+
+                # Calculate beam color counts
+                beam_color_counts = {}
+                color_per_beam_parts = []
+
+                for item in order_items:
+                    beam_color_id = item.beam_color_id
+                    beam_color_counts[beam_color_id] = (
+                        beam_color_counts.get(beam_color_id, 0) + 1
+                    )
+
+                # Create color per beam string (e.g., "R-2,F-1,B-3")
+                for color_id, count in beam_color_counts.items():
+                    color = await self.color_repository.get_by_id(color_id)
+                    if color:
+                        color_per_beam_parts.append(f"{color.color_code}-{count}")
+
+                color_per_beam = f"({','.join(color_per_beam_parts)})"
+
+                # Calculate pieces for each color using the formula:
+                # Units × Total Designs × Beam Color Count
+                colors = {
+                    "red": 0,
+                    "firozi": 0,
+                    "gold": 0,
+                    "royal_blue": 0,
+                    "black": 0,
+                    "white": 0,
+                }
+
+                # Map color codes to color names
+                color_mapping = {
+                    "R": "red",
+                    "F": "firozi",
+                    "G": "gold",
+                    "RB": "royal_blue",
+                    "B": "black",
+                    "W": "white",
+                }
+
+                total_pieces = 0
+                for color_id, count in beam_color_counts.items():
+                    color = await self.color_repository.get_by_id(color_id)
+                    if color and color.color_code in color_mapping:
+                        color_name = color_mapping[color.color_code]
+                        pieces = order.units * order.total_designs * count
+                        colors[color_name] = pieces
+                        total_pieces += pieces
+
+                # Add to quality group
+                quality_groups[quality_name].append(
+                    {
+                        "party_name": party_name,
+                        "quality_name": quality_name,
+                        "color_per_beam": color_per_beam,
+                        "colors": colors,
+                        "total": total_pieces,
+                    }
+                )
+
+            # Convert to the expected format
+            result = []
+            for quality_name, items in quality_groups.items():
+                result.append({"quality_name": quality_name, "items": items})
+
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Error getting beam details: {str(e)}")
+            return []
+
     async def _calculate_beam_details(
         self, order_items: List, total_designs: int
     ) -> tuple:
         """Calculate beam summary and detailed beam colors"""
-        # Group items by beam color and sum pieces
-        beam_data = {}
-        for item in order_items:
-            beam_color_id = item.beam_color_id
-            pieces = item.pieces_per_color
-
-            if beam_color_id not in beam_data:
-                beam_data[beam_color_id] = {"count": 0, "total_pieces": 0}
-
-            beam_data[beam_color_id]["count"] += 1
-            beam_data[beam_color_id]["total_pieces"] += pieces
-
-        # Get color details and format response
-        beam_colors = []
-        beam_summary = {}
-
-        for color_id, data in beam_data.items():
-            color = await self.color_repository.get_by_id(color_id)
-            if color:
-                # Calculate total pieces for this color across all designs
-                calculated_pieces = data["total_pieces"] * total_designs
-
-                beam_colors.append(
-                    {
-                        "color_code": color.color_code,
-                        "color_name": color.color_name,
-                        "selection_count": data["count"],
-                        "calculated_pieces": calculated_pieces,
-                    }
-                )
-
-                beam_summary[color.color_code] = data["count"]
-
-        return beam_summary, beam_colors
+        # This method is now deprecated as we use the new calculation logic
+        # Return empty data for backward compatibility
+        return {}, []

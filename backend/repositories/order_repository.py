@@ -28,6 +28,7 @@ class OrderRepository:
             "order_number": order_number,
             "party_id": order_data["party_id"],
             "quality_id": order_data["quality_id"],
+            "units": order_data["units"],
             "order_date": str(date.today()),
             "rate_per_piece": float(order_data["rate_per_piece"]),
             "total_designs": len(order_data["design_numbers"]),
@@ -58,9 +59,8 @@ class OrderRepository:
                 item_data = {
                     "order_id": order.id,
                     "design_number": design_number,
-                    "ground_color_id": ground_color["ground_color_id"],
+                    "ground_color_name": ground_color["ground_color_name"],
                     "beam_color_id": ground_color["beam_color_id"],
-                    "pieces_per_color": ground_color["pieces_per_color"],
                     "created_at": get_ist_timestamp(),
                 }
                 client.table("order_items").insert(item_data).execute()
@@ -103,6 +103,33 @@ class OrderRepository:
         order = Order.from_dict(order_result.data[0])
         return order
 
+    async def get_all_orders(self) -> List[Order]:
+        """Get all active orders with party and quality details"""
+        client = await self.db_client.get_client()
+
+        # Get orders with party and quality information
+        orders_result = (
+            client.table("orders")
+            .select("""
+                *,
+                parties!inner(id, party_name),
+                qualities!inner(id, quality_name)
+            """)
+            .eq("is_active", True)
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        orders = []
+        for order_data in orders_result.data:
+            # Create order object and add party/quality names
+            order = Order.from_dict(order_data)
+            order.party_name = order_data["parties"]["party_name"]
+            order.quality_name = order_data["qualities"]["quality_name"]
+            orders.append(order)
+
+        return orders
+
     async def update(self, order_id: int, update_data: dict) -> Optional[Order]:
         """Update order"""
         client = await self.db_client.get_client()
@@ -144,15 +171,13 @@ class OrderRepository:
             ).execute()
 
             # Create new items
-            pieces_per_color = update_data.get("pieces_per_color", 0)
             for design_number in update_data["design_numbers"]:
                 for ground_color in update_data["ground_colors"]:
                     item_data = {
                         "order_id": order_id,
                         "design_number": design_number,
-                        "ground_color_id": ground_color["ground_color_id"],
+                        "ground_color_name": ground_color["ground_color_name"],
                         "beam_color_id": ground_color["beam_color_id"],
-                        "pieces_per_color": pieces_per_color,
                         "created_at": get_ist_timestamp(),
                     }
                     client.table("order_items").insert(item_data).execute()
@@ -160,7 +185,7 @@ class OrderRepository:
             # Recalculate totals
             beam_summary = await self._calculate_beam_summary(order_id, client)
             total_designs = len(update_data["design_numbers"])
-            total_pieces = sum(beam_summary.values()) * pieces_per_color * total_designs
+            total_pieces = await self._calculate_total_pieces(order_id, client)
 
             # Get current rate
             current_order = await self.get_by_id(order_id)
@@ -354,16 +379,41 @@ class OrderRepository:
         return color_summary
 
     async def _calculate_total_pieces(self, order_id: int, client) -> int:
-        """Calculate total pieces for an order from all order items"""
-        # Get all items for the order with their pieces_per_color
+        """Calculate total pieces using new formula: Units × Total Designs × Beam Color Count"""
+        # Get order details
+        order_result = (
+            client.table("orders")
+            .select("units, total_designs")
+            .eq("id", order_id)
+            .execute()
+        )
+
+        if not order_result.data:
+            return 0
+
+        order_data = order_result.data[0]
+        units = order_data["units"]
+        total_designs = order_data["total_designs"]
+
+        # Get beam color counts
         items_result = (
             client.table("order_items")
-            .select("pieces_per_color")
+            .select("beam_color_id")
             .eq("order_id", order_id)
             .eq("is_active", True)
             .execute()
         )
 
-        # Sum up all pieces
-        total_pieces = sum(item["pieces_per_color"] for item in items_result.data)
+        # Count beam color occurrences
+        beam_color_counts = {}
+        for item in items_result.data:
+            beam_color_id = item["beam_color_id"]
+            beam_color_counts[beam_color_id] = (
+                beam_color_counts.get(beam_color_id, 0) + 1
+            )
+
+        # Calculate total pieces: Units × Total Designs × Sum of all beam color counts
+        total_beam_color_count = sum(beam_color_counts.values())
+        total_pieces = units * total_designs * total_beam_color_count
+
         return total_pieces

@@ -11,9 +11,8 @@ from pydantic import BaseModel, Field, field_validator
 class GroundColorItem(BaseModel):
     """Schema for ground color items in order"""
 
-    ground_color_id: int = Field(..., gt=0, description="Ground color ID")
+    ground_color_name: str = Field(..., min_length=1, description="Ground color name")
     beam_color_id: int = Field(..., gt=0, description="Beam color ID")
-    pieces_per_color: int = Field(..., gt=0, description="Pieces per color")
 
     class Config:
         from_attributes = True
@@ -24,6 +23,7 @@ class OrderCreate(BaseModel):
 
     party_id: int = Field(..., gt=0, description="Party ID")
     quality_id: int = Field(..., gt=0, description="Quality ID")
+    units: int = Field(..., gt=0, description="Number of units")
     cuts: List[str] = Field(..., min_items=1, description="List of cut values")
     rate_per_piece: Decimal = Field(
         ..., gt=0, max_digits=10, decimal_places=2, description="Rate per piece"
@@ -76,6 +76,7 @@ class OrderUpdate(BaseModel):
 
     party_id: Optional[int] = Field(None, gt=0)
     quality_id: Optional[int] = Field(None, gt=0)
+    units: Optional[int] = Field(None, gt=0)
     cuts: Optional[List[str]] = Field(None, min_items=1)
     rate_per_piece: Optional[Decimal] = Field(
         None, gt=0, max_digits=10, decimal_places=2
@@ -144,6 +145,7 @@ class OrderResponse(BaseModel):
     order_number: str
     party_id: int
     quality_id: int
+    units: int
     order_date: str  # Date as string
     rate_per_piece: float
     total_designs: int
@@ -160,7 +162,6 @@ class OrderResponse(BaseModel):
     cuts: List[str] = []
     design_numbers: List[str] = []
     ground_colors: List[GroundColorItem] = []
-    pieces_per_color: int = 0
     beam_summary: Dict[str, int] = {}  # {"R": 1, "B": 2}
     beam_colors: List[BeamColorSummary] = []
 
