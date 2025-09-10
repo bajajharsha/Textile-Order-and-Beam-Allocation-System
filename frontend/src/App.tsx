@@ -20,6 +20,7 @@ function App() {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<OrderResponse | undefined>();
   const [orderRefreshTrigger, setOrderRefreshTrigger] = useState(0);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const handleBeamCalculated = (summary: BeamColorSummary[]) => {
     setBeamSummary(summary);
@@ -226,8 +227,12 @@ function App() {
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-background flex">
-        <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-        <div className="main-content flex-1 flex flex-col">
+        <Navigation 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+          onSidebarToggle={setIsSidebarCollapsed}
+        />
+        <div className={`main-content flex-1 flex flex-col ${isSidebarCollapsed ? 'main-content-collapsed' : ''}`}>
           <Header />
           <main className="flex-1">
             {renderActiveTab()}

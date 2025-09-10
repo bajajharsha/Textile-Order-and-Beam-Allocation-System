@@ -106,6 +106,10 @@ const BeamAllocationTable: React.FC<BeamAllocationTableProps> = ({
                   <th className="text-center">Royal Blue</th>
                   <th className="text-center">Black</th>
                   <th className="text-center">White</th>
+                  <th className="text-center">Yellow</th>
+                  <th className="text-center">Green</th>
+                  <th className="text-center">Purple</th>
+                  <th className="text-center">Orange</th>
                   <th className="text-center">Total</th>
                 </tr>
               </thead>
@@ -114,7 +118,7 @@ const BeamAllocationTable: React.FC<BeamAllocationTableProps> = ({
                   <React.Fragment key={qualityGroup.quality_name}>
                     {/* Quality Section Header */}
                     <tr className="quality-section-header">
-                      <td colSpan={10} className="py-3 px-4 font-semibold text-primary bg-primary/5">
+                      <td colSpan={14} className="py-3 px-4 font-semibold text-primary bg-primary/5">
                         {qualityGroup.quality_name}
                       </td>
                     </tr>
@@ -151,6 +155,18 @@ const BeamAllocationTable: React.FC<BeamAllocationTableProps> = ({
                           <ColorCell value={item.colors.white} />
                         </td>
                         <td className="py-3 px-4 text-center">
+                          <ColorCell value={item.colors.yellow} />
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <ColorCell value={item.colors.green} />
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <ColorCell value={item.colors.purple} />
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <ColorCell value={item.colors.orange} />
+                        </td>
+                        <td className="py-3 px-4 text-center">
                           <div className="font-semibold text-primary">
                             {item.total.toLocaleString()}
                           </div>
@@ -180,6 +196,18 @@ const BeamAllocationTable: React.FC<BeamAllocationTableProps> = ({
                         </td>
                         <td className="py-2 px-4 text-center font-medium">
                           {qualityGroup.items.reduce((sum, item) => sum + item.colors.white, 0).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-4 text-center font-medium">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.colors.yellow, 0).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-4 text-center font-medium">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.colors.green, 0).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-4 text-center font-medium">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.colors.purple, 0).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-4 text-center font-medium">
+                          {qualityGroup.items.reduce((sum, item) => sum + item.colors.orange, 0).toLocaleString()}
                         </td>
                         <td className="py-2 px-4 text-center font-semibold text-primary">
                           {qualityGroup.items.reduce((sum, item) => sum + item.total, 0).toLocaleString()}

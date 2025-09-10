@@ -99,6 +99,10 @@ export interface BeamDetailItem {
     royal_blue: number;
     black: number;
     white: number;
+    yellow: number;
+    green: number;
+    purple: number;
+    orange: number;
   };
   total: number;
 }

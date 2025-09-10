@@ -228,6 +228,10 @@ class OrderUseCase:
                     "royal_blue": 0,
                     "black": 0,
                     "white": 0,
+                    "yellow": 0,
+                    "green": 0,
+                    "purple": 0,
+                    "orange": 0,
                 }
 
                 # Map color codes to color names
@@ -238,6 +242,10 @@ class OrderUseCase:
                     "RB": "royal_blue",
                     "B": "black",
                     "W": "white",
+                    "Y": "yellow",
+                    "GR": "green",
+                    "P": "purple",
+                    "O": "orange",
                 }
 
                 total_pieces = 0
