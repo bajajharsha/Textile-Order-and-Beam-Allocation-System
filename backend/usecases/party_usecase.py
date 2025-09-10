@@ -47,9 +47,7 @@ class PartyUseCase:
         validated_data = validate_party_data(update_data, is_update=True)
 
         # Check GST uniqueness if being updated
-        if validated_data.get("gst") and validated_data["gst"] != existing_party.get(
-            "gst"
-        ):
+        if validated_data.get("gst") and validated_data["gst"] != existing_party.gst:
             gst_party = await self.repository.get_by_gst(validated_data["gst"])
             if gst_party:
                 raise ValueError("Another party with this GST already exists")

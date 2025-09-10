@@ -51,7 +51,6 @@ class OrderRepository:
 
         # Create order items and calculate beam summary
         ground_colors = order_data["ground_colors"]
-        pieces_per_color = order_data["pieces_per_color"]
 
         for i, design_number in enumerate(order_data["design_numbers"]):
             # For each design, create items for each ground color
@@ -61,16 +60,14 @@ class OrderRepository:
                     "design_number": design_number,
                     "ground_color_id": ground_color["ground_color_id"],
                     "beam_color_id": ground_color["beam_color_id"],
-                    "pieces_per_color": pieces_per_color,
+                    "pieces_per_color": ground_color["pieces_per_color"],
                     "created_at": get_ist_timestamp(),
                 }
                 client.table("order_items").insert(item_data).execute()
 
         # Calculate totals and update order
         beam_summary = await self._calculate_beam_summary(order.id, client)
-        total_pieces = (
-            sum(beam_summary.values()) * pieces_per_color * order.total_designs
-        )
+        total_pieces = await self._calculate_total_pieces(order.id, client)
         total_value = float(
             Decimal(str(total_pieces)) * Decimal(str(order.rate_per_piece))
         )
@@ -355,3 +352,18 @@ class OrderRepository:
                 color_summary[color_code] = count
 
         return color_summary
+
+    async def _calculate_total_pieces(self, order_id: int, client) -> int:
+        """Calculate total pieces for an order from all order items"""
+        # Get all items for the order with their pieces_per_color
+        items_result = (
+            client.table("order_items")
+            .select("pieces_per_color")
+            .eq("order_id", order_id)
+            .eq("is_active", True)
+            .execute()
+        )
+
+        # Sum up all pieces
+        total_pieces = sum(item["pieces_per_color"] for item in items_result.data)
+        return total_pieces

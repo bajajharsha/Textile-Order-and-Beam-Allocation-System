@@ -18,7 +18,6 @@ class BeamPreviewRequest(BaseModel):
 
     ground_colors: List[dict]
     design_numbers: List[str]
-    pieces_per_color: int
 
     class Config:
         from_attributes = True
@@ -86,5 +85,4 @@ async def calculate_beam_preview(
     return await order_controller.calculate_beam_preview(
         preview_data.ground_colors,
         preview_data.design_numbers,
-        preview_data.pieces_per_color,
     )

@@ -79,12 +79,12 @@ class OrderController:
             )
 
     async def calculate_beam_preview(
-        self, ground_colors: list, design_numbers: list, pieces_per_color: int
+        self, ground_colors: list, design_numbers: list
     ) -> dict:
         """Handle beam calculation preview request"""
         try:
             return await self.use_case.calculate_beam_preview(
-                ground_colors, design_numbers, pieces_per_color
+                ground_colors, design_numbers
             )
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))

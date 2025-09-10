@@ -107,3 +107,15 @@ class PartyRepository:
             .execute()
         )
         return Party.from_dict(result.data[0]) if result.data else None
+
+    async def get_dropdown_list(self) -> List[Party]:
+        """Get parties for dropdown"""
+        client = await self.db_client.get_client()
+        result = (
+            client.table("parties")
+            .select("id, party_name")
+            .eq("is_active", True)
+            .order("party_name", desc=False)
+            .execute()
+        )
+        return [Party.from_dict(party) for party in result.data]

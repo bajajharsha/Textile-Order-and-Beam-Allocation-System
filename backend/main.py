@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from config.database import database
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from routes.master_routes import router as master_router
 from routes.order_routes import router as order_router
 from routes.party_routes import router as party_router
@@ -40,6 +41,15 @@ app = FastAPI(
     title="Textile Order & Beam Allocation System",
     description="A comprehensive system for managing textile orders and beam allocations",
     lifespan=lifespan,
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include API routes

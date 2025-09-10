@@ -9,6 +9,7 @@ from models.domain.cut import Cut
 from models.domain.quality import Quality
 from repositories.color_repository import ColorRepository
 from repositories.cut_repository import CutRepository
+from repositories.party_repository import PartyRepository
 from repositories.quality_repository import QualityRepository
 
 
@@ -19,6 +20,7 @@ class MasterUseCase:
         self.color_repository = ColorRepository()
         self.quality_repository = QualityRepository()
         self.cut_repository = CutRepository()
+        self.party_repository = PartyRepository()
 
     # Color operations
     async def create_color(self, color_data: dict) -> Color:
@@ -223,7 +225,13 @@ class MasterUseCase:
         qualities = await self.get_qualities_dropdown()
         cuts = await self.get_cuts_dropdown()
 
+        # Get parties for dropdown (active parties only)
+        parties = await self.party_repository.get_dropdown_list()
+
         return {
+            "parties": [
+                {"id": party.id, "name": party.party_name} for party in parties
+            ],
             "colors": [color.to_dict() for color in colors],
             "qualities": [quality.to_dict() for quality in qualities],
             "cuts": [cut.to_dict() for cut in cuts],

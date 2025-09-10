@@ -13,6 +13,7 @@ class GroundColorItem(BaseModel):
 
     ground_color_id: int = Field(..., gt=0, description="Ground color ID")
     beam_color_id: int = Field(..., gt=0, description="Beam color ID")
+    pieces_per_color: int = Field(..., gt=0, description="Pieces per color")
 
     class Config:
         from_attributes = True
@@ -33,7 +34,6 @@ class OrderCreate(BaseModel):
     ground_colors: List[GroundColorItem] = Field(
         ..., min_items=1, description="Ground colors with beam colors"
     )
-    pieces_per_color: int = Field(..., gt=0, description="Pieces per color")
     notes: Optional[str] = Field(None, max_length=1000, description="Additional notes")
 
     @field_validator("design_numbers")
@@ -82,7 +82,6 @@ class OrderUpdate(BaseModel):
     )
     design_numbers: Optional[List[str]] = Field(None, min_items=1)
     ground_colors: Optional[List[GroundColorItem]] = Field(None, min_items=1)
-    pieces_per_color: Optional[int] = Field(None, gt=0)
     notes: Optional[str] = Field(None, max_length=1000)
 
     @field_validator("design_numbers")

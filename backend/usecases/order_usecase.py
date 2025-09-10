@@ -115,7 +115,6 @@ class OrderUseCase:
         self,
         ground_colors: List[Dict],
         design_numbers: List[str],
-        pieces_per_color: int,
     ) -> Dict[str, Any]:
         """Calculate beam summary preview for order creation"""
         total_designs = len(design_numbers)
@@ -128,7 +127,7 @@ class OrderUseCase:
                     "design_number": design,
                     "ground_color_id": ground_color["ground_color_id"],
                     "beam_color_id": ground_color["beam_color_id"],
-                    "pieces_per_color": pieces_per_color,
+                    "pieces_per_color": ground_color["pieces_per_color"],
                 }
                 mock_items.append(mock_item)
 
@@ -139,7 +138,7 @@ class OrderUseCase:
 
         # Calculate beam details
         beam_summary, beam_colors = await self._calculate_beam_details(
-            order_items, total_designs, pieces_per_color
+            order_items, total_designs
         )
 
         # Calculate totals
@@ -166,33 +165,40 @@ class OrderUseCase:
                 raise ValueError(f"Color with ID {color_id} not found")
 
     async def _calculate_beam_details(
-        self, order_items: List, total_designs: int, pieces_per_color: int
+        self, order_items: List, total_designs: int
     ) -> tuple:
         """Calculate beam summary and detailed beam colors"""
-        # Count beam color occurrences
-        beam_counts = {}
+        # Group items by beam color and sum pieces
+        beam_data = {}
         for item in order_items:
             beam_color_id = item.beam_color_id
-            beam_counts[beam_color_id] = beam_counts.get(beam_color_id, 0) + 1
+            pieces = item.pieces_per_color
 
-        # Get color details and calculate pieces
+            if beam_color_id not in beam_data:
+                beam_data[beam_color_id] = {"count": 0, "total_pieces": 0}
+
+            beam_data[beam_color_id]["count"] += 1
+            beam_data[beam_color_id]["total_pieces"] += pieces
+
+        # Get color details and format response
         beam_colors = []
         beam_summary = {}
 
-        for color_id, count in beam_counts.items():
+        for color_id, data in beam_data.items():
             color = await self.color_repository.get_by_id(color_id)
             if color:
-                calculated_pieces = pieces_per_color * count * total_designs
+                # Calculate total pieces for this color across all designs
+                calculated_pieces = data["total_pieces"] * total_designs
 
                 beam_colors.append(
                     {
                         "color_code": color.color_code,
                         "color_name": color.color_name,
-                        "selection_count": count,
+                        "selection_count": data["count"],
                         "calculated_pieces": calculated_pieces,
                     }
                 )
 
-                beam_summary[color.color_code] = count
+                beam_summary[color.color_code] = data["count"]
 
         return beam_summary, beam_colors
