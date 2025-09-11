@@ -1,7 +1,6 @@
-import { Calculator, Plus, ShoppingCart, Trash2, X } from 'lucide-react';
+import { Plus, ShoppingCart, Trash2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import {
-  BeamColorSummary,
   DropdownData,
   GroundColorItem,
   masterApi,
@@ -11,15 +10,13 @@ import {
 
 interface OrderFormProps {
   onOrderCreated?: (order: any) => void;
-  onBeamCalculated?: (beamSummary: BeamColorSummary[]) => void;
   editOrder?: any;
   onCancel?: () => void;
 }
 
-const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated, editOrder, onCancel }) => {
+const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCancel }) => {
   const [dropdownData, setDropdownData] = useState<DropdownData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [calculatingBeam, setCalculatingBeam] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
@@ -36,7 +33,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
     { ground_color_name: '', beam_color_id: 0 }
   ]);
 
-  const [beamPreview, setBeamPreview] = useState<BeamColorSummary[]>([]);
 
   // Load dropdown data on component mount
   useEffect(() => {
@@ -117,75 +113,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
     }
   };
 
-  // Helper function to calculate beam color counts
-  const calculateBeamColorCounts = (groundColors: GroundColorItem[], colors: any[]) => {
-    const beamColorCounts: Record<number, number> = {};
-    
-    // Count how many times each beam color is selected
-    groundColors.forEach(gc => {
-      if (gc.beam_color_id > 0) {
-        beamColorCounts[gc.beam_color_id] = (beamColorCounts[gc.beam_color_id] || 0) + 1;
-      }
-    });
-
-    // Create beam summary with proper calculation
-    const units = parseInt(formData.units) || 0;
-    const totalDesigns = formData.design_numbers.filter(d => d.trim()).length;
-    
-    const beamSummary: BeamColorSummary[] = Object.entries(beamColorCounts).map(([colorId, count]) => {
-      const color = colors?.find(c => c.id === parseInt(colorId));
-      const totalPieces = units * totalDesigns * count;
-      
-      return {
-        beam_color_id: parseInt(colorId),
-        beam_color_name: color ? `${color.color_name} (${color.color_code})` : `Color ${colorId}`,
-        total_pieces: totalPieces
-      };
-    });
-
-    return beamSummary;
-  };
-
-  const calculateBeamPreview = async () => {
-    if (!formData.design_numbers.some(d => d.trim()) || !groundColors.some(g => g.ground_color_name.trim() && g.beam_color_id > 0)) {
-      alert('Please enter design numbers and ground color details');
-      return;
-    }
-
-    if (!formData.units || parseInt(formData.units) <= 0) {
-      alert('Please enter a valid number of units');
-      return;
-    }
-
-    setCalculatingBeam(true);
-    try {
-      const validGroundColors = groundColors.filter(g => g.ground_color_name.trim() && g.beam_color_id > 0);
-      const validDesignNumbers = formData.design_numbers.filter(d => d.trim());
-      
-      if (validGroundColors.length === 0) {
-        alert('Please enter valid ground colors and select beam colors');
-        return;
-      }
-
-      // Use backend calculation
-      const response = await orderApi.calculateBeamPreview({
-        units: parseInt(formData.units),
-        ground_colors: validGroundColors,
-        design_numbers: validDesignNumbers
-      });
-      
-      setBeamPreview(response.data.beam_summary);
-      
-      if (onBeamCalculated) {
-        onBeamCalculated(response.data.beam_summary);
-      }
-    } catch (error) {
-      console.error('Error calculating beam preview:', error);
-      alert('Failed to calculate beam preview');
-    } finally {
-      setCalculatingBeam(false);
-    }
-  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -249,7 +176,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
         notes: ''
       });
       setGroundColors([{ ground_color_name: '', beam_color_id: 0 }]);
-      setBeamPreview([]);
       
     } catch (error: any) {
       console.error('Error creating order:', error);
@@ -369,26 +295,26 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
           <label className="form-label">
             Cuts (Quality) *
           </label>
-             <div className="flex flex-wrap gap-3">
-             {(dropdownData.cuts || []).map(cut => (
-               <label key={cut.id} className="flex items-center gap-2 cursor-pointer">
-                 <input
-                   type="checkbox"
-                   checked={formData.cuts.includes(cut.cut_value)}
-                   onChange={(e) => handleCutChange(cut.cut_value, e.target.checked)}
-                   className="rounded border-border"
-                   disabled={loading}
-                 />
-                 <span className="text-sm">{cut.cut_value}</span>
-               </label>
-             ))}
+          <div className="flex flex-wrap gap-3">
+            {(dropdownData.cuts || []).map(cut => (
+              <label key={cut.id} className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={formData.cuts.includes(cut.cut_value)}
+                  onChange={(e) => handleCutChange(cut.cut_value, e.target.checked)}
+                  className="form-checkbox"
+                  disabled={loading}
+                />
+                <span className="text-sm font-medium">{cut.cut_value}</span>
+              </label>
+            ))}
           </div>
           {errors.cuts && <p className="text-error text-sm mt-1">{errors.cuts}</p>}
         </div>
 
         {/* Design Numbers */}
         <div className="form-group">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <label className="form-label">Design Numbers *</label>
             <button
               type="button"
@@ -400,23 +326,24 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
               Add Design
             </button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {formData.design_numbers.map((design, index) => (
-              <div key={index} className="flex gap-2">
+              <div key={index} className="design-number-container">
                 <input
                   type="text"
                   value={design}
                   onChange={(e) => handleDesignNumberChange(index, e.target.value)}
-                  className="form-input"
-                  placeholder={`Design number ${index + 1}`}
+                  className="design-number-input form-input border-0 bg-transparent p-0 focus:ring-0 focus:border-0"
+                  placeholder={`Design ${index + 1}`}
                   disabled={loading}
                 />
                 {formData.design_numbers.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeDesignNumber(index)}
-                    className="btn btn-secondary btn-sm"
+                    className="btn btn-secondary btn-sm p-2"
                     disabled={loading}
+                    title="Remove design"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -527,26 +454,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, onBeamCalculated,
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-between">
-          <button
-            type="button"
-            onClick={calculateBeamPreview}
-            className="btn btn-secondary"
-            disabled={loading || calculatingBeam}
-          >
-            {calculatingBeam ? (
-              <>
-                <div className="loading"></div>
-                Calculating...
-              </>
-            ) : (
-              <>
-                <Calculator size={16} />
-                Preview Beam Allocation
-              </>
-            )}
-          </button>
-
+        <div className="flex justify-end">
           <button
             type="submit"
             className="btn btn-primary"

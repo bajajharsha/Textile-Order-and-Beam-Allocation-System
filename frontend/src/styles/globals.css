@@ -389,6 +389,33 @@ main {
   margin: 0 1rem;
 }
 
+/* Compact Design Number Input */
+.design-number-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.design-number-container {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  transition: all 0.2s ease;
+}
+
+.design-number-container:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.design-number-container:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 /* Form Overlay */
 .form-overlay {
   position: fixed;
@@ -410,16 +437,16 @@ main {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .form-overlay-content {
   position: relative;
   z-index: 1001;
   width: 100%;
-  max-width: 800px;
+  max-width: 900px;
   max-height: 90vh;
   overflow-y: auto;
   animation: overlaySlideIn 0.3s ease-out;
@@ -430,6 +457,7 @@ main {
   margin-bottom: 0;
   box-shadow: var(--shadow-lg);
   border-radius: var(--border-radius-xl);
+  border: 1px solid var(--color-border);
 }
 
 @keyframes overlayFadeIn {
@@ -503,11 +531,12 @@ main {
 
 .form-label {
   display: block;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 0.75rem;
   font-size: 0.875rem;
   line-height: 1.4;
+  letter-spacing: 0.025em;
 }
 
 .form-input,
@@ -517,11 +546,87 @@ main {
   padding: 1rem 1.25rem;
   border: 2px solid var(--color-border);
   border-radius: var(--border-radius-lg);
-  background-color: var(--color-background);
+  background-color: var(--color-surface);
   color: var(--color-text-primary);
   font-size: 1rem;
   transition: all 0.3s ease;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Enhanced Select Dropdown Styling */
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+  appearance: none;
+  cursor: pointer;
+}
+
+.form-select:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233b82f6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Enhanced Checkbox Styling */
+.form-checkbox {
+  appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.375rem;
+  background-color: var(--color-surface);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.form-checkbox:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-checkbox:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.form-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 0.25rem;
+  top: 0.125rem;
+  width: 0.375rem;
+  height: 0.625rem;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Checkbox Label Styling */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius-lg);
+  transition: all 0.2s ease;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.checkbox-label:hover {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.checkbox-label input[type="checkbox"]:checked + span {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 /* Search input with icon */

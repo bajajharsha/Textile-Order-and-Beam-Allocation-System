@@ -10,7 +10,7 @@ import PartyTable from './components/Tables/PartyTable';
 import { ThemeProvider } from './contexts/ThemeContext';
 import LotRegister from './pages/LotRegister';
 import PartywiseDetail from './pages/PartywiseDetail';
-import { BeamColorSummary, OrderResponse, Party } from './services/api';
+import { OrderResponse, Party } from './services/api';
 import './styles/globals.css';
 
 function App() {
@@ -24,9 +24,6 @@ function App() {
   const [lotRefreshTrigger, setLotRefreshTrigger] = useState(0);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const handleBeamCalculated = (summary: BeamColorSummary[]) => {
-    setActiveTab('beam'); // Auto-switch to beam tab to show results
-  };
 
   const handleLotUpdated = () => {
     setLotRefreshTrigger(prev => prev + 1);
@@ -193,7 +190,6 @@ function App() {
                 <div className="form-overlay-content">
                   <OrderForm 
                     onOrderCreated={handleOrderCreated}
-                    onBeamCalculated={handleBeamCalculated}
                     editOrder={editingOrder}
                     onCancel={handleCloseOrderForm}
                   />
