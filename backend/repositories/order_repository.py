@@ -50,19 +50,22 @@ class OrderRepository:
             }
             client.table("order_cuts").insert(cut_data).execute()
 
-        # Create order items for ground colors only (not per design)
+        # Create order items for ground colors with design numbers
         ground_colors = order_data["ground_colors"]
+        design_numbers = order_data["design_numbers"]
 
+        # Create items for each ground color (not per design to avoid duplication)
         for ground_color in ground_colors:
             item_data = {
                 "order_id": order.id,
-                "design_number": "ALL",  # Use placeholder since designs are stored separately
+                "design_number": ",".join(
+                    design_numbers
+                ),  # Store all design numbers as comma-separated
                 "ground_color_name": ground_color["ground_color_name"],
                 "beam_color_id": ground_color["beam_color_id"],
                 "created_at": get_ist_timestamp(),
             }
             client.table("order_items").insert(item_data).execute()
-
         # Calculate totals and update order
         beam_summary = await self._calculate_beam_summary(order.id, client)
         total_pieces = await self._calculate_total_pieces(order.id, client)
@@ -128,6 +131,370 @@ class OrderRepository:
 
         return orders
 
+    async def get_all_orders_with_details(
+        self, filters: dict = None, limit: int = None, offset: int = None
+    ) -> List[dict]:
+        """Get all active orders with all related data for API responses - OPTIMIZED"""
+        client = await self.db_client.get_client()
+
+        # Build query with filters
+        query = (
+            client.table("orders")
+            .select("""
+            *,
+            parties!inner(id, party_name),
+            qualities!inner(id, quality_name)
+        """)
+            .eq("is_active", True)
+        )
+
+        # Apply filters
+        if filters:
+            if "party_id" in filters:
+                query = query.eq("party_id", filters["party_id"])
+            if "quality_id" in filters:
+                query = query.eq("quality_id", filters["quality_id"])
+
+        # Apply pagination
+        if limit:
+            query = query.limit(limit)
+        if offset:
+            query = query.range(offset, offset + (limit or 10) - 1)
+
+        # Execute main query
+        orders_result = query.order("created_at", desc=True).execute()
+
+        if not orders_result.data:
+            return []
+
+        order_ids = [order["id"] for order in orders_result.data]
+
+        # Batch fetch all related data
+        # 1. Get all cuts for all orders
+        cuts_result = (
+            client.table("order_cuts")
+            .select("order_id, cut_value")
+            .in_("order_id", order_ids)
+            .eq("is_active", True)
+            .execute()
+        )
+        cuts_by_order = {}
+        for cut in cuts_result.data:
+            order_id = cut["order_id"]
+            if order_id not in cuts_by_order:
+                cuts_by_order[order_id] = []
+            cuts_by_order[order_id].append(cut["cut_value"])
+
+        # 2. Get all order items for all orders
+        items_result = (
+            client.table("order_items")
+            .select("*")
+            .in_("order_id", order_ids)
+            .eq("is_active", True)
+            .execute()
+        )
+        items_by_order = {}
+        beam_color_ids = set()
+        for item in items_result.data:
+            order_id = item["order_id"]
+            if order_id not in items_by_order:
+                items_by_order[order_id] = []
+            items_by_order[order_id].append(item)
+            beam_color_ids.add(item["beam_color_id"])
+
+        # 3. Get all color codes in one query
+        color_codes = {}
+        if beam_color_ids:
+            colors_result = (
+                client.table("colors")
+                .select("id, color_code")
+                .in_("id", list(beam_color_ids))
+                .execute()
+            )
+            color_codes = {
+                color["id"]: color["color_code"] for color in colors_result.data
+            }
+
+        # 4. Process each order
+        orders_with_details = []
+        for order_data in orders_result.data:
+            order_id = order_data["id"]
+
+            # Get cuts for this order
+            cuts = cuts_by_order.get(order_id, [])
+
+            # Get items for this order
+            items = items_by_order.get(order_id, [])
+
+            # Process ground colors and beam color counts
+            ground_colors = []
+            beam_color_counts = {}
+            design_numbers = []
+
+            for item in items:
+                ground_colors.append(
+                    {
+                        "ground_color_name": item["ground_color_name"],
+                        "beam_color_id": item["beam_color_id"],
+                    }
+                )
+
+                # Count beam colors
+                beam_color_id = item["beam_color_id"]
+                beam_color_counts[beam_color_id] = (
+                    beam_color_counts.get(beam_color_id, 0) + 1
+                )
+
+                # Process design numbers
+                if item["design_number"]:
+                    if item["design_number"] == "ALL":
+                        # For old orders with "ALL", generate design numbers based on total_designs
+                        design_numbers.extend(
+                            [
+                                f"D{i + 1:03d}"
+                                for i in range(order_data["total_designs"])
+                            ]
+                        )
+                    else:
+                        # Split comma-separated design numbers
+                        design_numbers.extend(
+                            [
+                                d.strip()
+                                for d in item["design_number"].split(",")
+                                if d.strip()
+                            ]
+                        )
+
+            design_numbers = list(set(design_numbers))  # Remove duplicates
+
+            # Create beam_summary with color codes
+            beam_summary = {}
+            for beam_color_id, count in beam_color_counts.items():
+                color_code = color_codes.get(beam_color_id)
+                if color_code:
+                    beam_summary[color_code] = count
+
+            # Create order items for calculation
+            order_items = []
+            for item in items:
+                beam_color_id = item["beam_color_id"]
+                count = beam_color_counts[beam_color_id]
+                calculated_pieces = (
+                    order_data["units"] * order_data["total_designs"] * count
+                )
+
+                order_items.append(
+                    {
+                        "design_number": item["design_number"],
+                        "ground_color_name": item["ground_color_name"],
+                        "beam_color_id": beam_color_id,
+                        "calculated_pieces": calculated_pieces,
+                    }
+                )
+
+            # Build complete order data
+            order_with_details = {
+                **order_data,
+                "party_name": order_data["parties"]["party_name"],
+                "quality_name": order_data["qualities"]["quality_name"],
+                "cuts": cuts,
+                "design_numbers": design_numbers,
+                "ground_colors": ground_colors,
+                "beam_summary": beam_summary,
+                "order_items": order_items,
+            }
+
+            # Remove nested data
+            del order_with_details["parties"]
+            del order_with_details["qualities"]
+
+            orders_with_details.append(order_with_details)
+
+        return orders_with_details
+
+    async def search_with_details(self, query: str, limit: int = 20) -> List[dict]:
+        """Search orders with all related data"""
+        client = await self.db_client.get_client()
+
+        # Search in orders table
+        order_result = (
+            client.table("orders")
+            .select("""
+                *,
+                parties!inner(id, party_name),
+                qualities!inner(id, quality_name)
+            """)
+            .ilike("order_number", f"%{query}%")
+            .eq("is_active", True)
+            .limit(limit)
+            .execute()
+        )
+
+        found_order_ids = set()
+        orders_with_details = []
+
+        # Process orders found by order number
+        for order_data in order_result.data:
+            found_order_ids.add(order_data["id"])
+            order_with_details = await self._build_order_with_details(
+                order_data, client
+            )
+            orders_with_details.append(order_with_details)
+
+        # Also search in order items for design numbers if we haven't reached the limit
+        if len(orders_with_details) < limit:
+            item_result = (
+                client.table("order_items")
+                .select("order_id")
+                .ilike("design_number", f"%{query}%")
+                .eq("is_active", True)
+                .limit(limit - len(orders_with_details))
+                .execute()
+            )
+
+            # Get unique order IDs from items
+            item_order_ids = list(set([item["order_id"] for item in item_result.data]))
+
+            # Get full order data for these IDs
+            for order_id in item_order_ids:
+                if order_id not in found_order_ids and len(orders_with_details) < limit:
+                    order_data_result = (
+                        client.table("orders")
+                        .select("""
+                            *,
+                            parties!inner(id, party_name),
+                            qualities!inner(id, quality_name)
+                        """)
+                        .eq("id", order_id)
+                        .eq("is_active", True)
+                        .execute()
+                    )
+
+                    if order_data_result.data:
+                        order_data = order_data_result.data[0]
+                        order_with_details = await self._build_order_with_details(
+                            order_data, client
+                        )
+                        orders_with_details.append(order_with_details)
+
+        return orders_with_details
+
+    async def _build_order_with_details(self, order_data: dict, client) -> dict:
+        """Helper method to build order with all details"""
+        order_id = order_data["id"]
+
+        # Get order cuts
+        cuts_result = (
+            client.table("order_cuts")
+            .select("cut_value")
+            .eq("order_id", order_id)
+            .eq("is_active", True)
+            .execute()
+        )
+        cuts = [cut["cut_value"] for cut in cuts_result.data]
+
+        # Get order items (ground colors)
+        items_result = (
+            client.table("order_items")
+            .select("*")
+            .eq("order_id", order_id)
+            .eq("is_active", True)
+            .execute()
+        )
+        ground_colors = []
+        beam_color_counts = {}
+
+        for item in items_result.data:
+            ground_colors.append(
+                {
+                    "ground_color_name": item["ground_color_name"],
+                    "beam_color_id": item["beam_color_id"],
+                }
+            )
+
+            # Count beam colors for beam_summary
+            beam_color_id = item["beam_color_id"]
+            beam_color_counts[beam_color_id] = (
+                beam_color_counts.get(beam_color_id, 0) + 1
+            )
+
+        # Get actual design numbers from order items
+        design_numbers_result = (
+            client.table("order_items")
+            .select("design_number")
+            .eq("order_id", order_id)
+            .eq("is_active", True)
+            .execute()
+        )
+        design_numbers = []
+        for item in design_numbers_result.data:
+            if item["design_number"]:
+                if item["design_number"] == "ALL":
+                    # For old orders with "ALL", generate design numbers based on total_designs
+                    design_numbers.extend(
+                        [f"D{i + 1:03d}" for i in range(order_data["total_designs"])]
+                    )
+                else:
+                    # Split comma-separated design numbers and add to list
+                    design_numbers.extend(
+                        [
+                            d.strip()
+                            for d in item["design_number"].split(",")
+                            if d.strip()
+                        ]
+                    )
+        design_numbers = list(set(design_numbers))  # Remove duplicates
+
+        # Create beam_summary with color codes
+        beam_summary = {}
+        for beam_color_id, count in beam_color_counts.items():
+            # Get color code
+            color_result = (
+                client.table("colors")
+                .select("color_code")
+                .eq("id", beam_color_id)
+                .execute()
+            )
+            if color_result.data:
+                color_code = color_result.data[0]["color_code"]
+                beam_summary[color_code] = count
+
+        # Create order items for calculation (with calculated_pieces)
+        order_items = []
+        for item in items_result.data:
+            beam_color_id = item["beam_color_id"]
+            count = beam_color_counts[beam_color_id]
+            calculated_pieces = (
+                order_data["units"] * order_data["total_designs"] * count
+            )
+
+            order_items.append(
+                {
+                    "design_number": item["design_number"],
+                    "ground_color_name": item["ground_color_name"],
+                    "beam_color_id": beam_color_id,
+                    "calculated_pieces": calculated_pieces,
+                }
+            )
+
+        # Build complete order data
+        order_with_details = {
+            **order_data,
+            "party_name": order_data["parties"]["party_name"],
+            "quality_name": order_data["qualities"]["quality_name"],
+            "cuts": cuts,
+            "design_numbers": design_numbers,
+            "ground_colors": ground_colors,
+            "beam_summary": beam_summary,
+            "order_items": order_items,
+        }
+
+        # Remove the nested party/quality data
+        del order_with_details["parties"]
+        del order_with_details["qualities"]
+
+        return order_with_details
+
     async def update(self, order_id: int, update_data: dict) -> Optional[Order]:
         """Update order"""
         client = await self.db_client.get_client()
@@ -168,11 +535,13 @@ class OrderRepository:
                 "order_id", order_id
             ).execute()
 
-            # Create new items for ground colors only (not per design)
+            # Create new items for ground colors with design numbers
             for ground_color in update_data["ground_colors"]:
                 item_data = {
                     "order_id": order_id,
-                    "design_number": "ALL",  # Use placeholder since designs are stored separately
+                    "design_number": ",".join(
+                        update_data["design_numbers"]
+                    ),  # Store all design numbers as comma-separated
                     "ground_color_name": ground_color["ground_color_name"],
                     "beam_color_id": ground_color["beam_color_id"],
                     "created_at": get_ist_timestamp(),

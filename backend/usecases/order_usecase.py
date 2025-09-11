@@ -42,6 +42,7 @@ class OrderUseCase:
         # Get related data
         cuts = await self.order_repository.get_order_cuts(order_id)
         design_numbers = await self.order_repository.get_design_numbers(order_id)
+        print("design_numbers", design_numbers)
         order_items = await self.order_repository.get_order_items(order_id)
 
         # Calculate beam summary and colors
@@ -91,18 +92,15 @@ class OrderUseCase:
     async def list_orders(self, page: int = 1, page_size: int = 20) -> dict:
         """List orders with pagination"""
         offset = (page - 1) * page_size
-        orders = await self.order_repository.get_all(limit=page_size, offset=offset)
+        orders = await self.order_repository.get_all_orders_with_details(
+            limit=page_size, offset=offset
+        )
+        print(f"order usecase orders {orders}")
         total_count = await self.order_repository.count_all()
 
-        # Convert to list items
-        order_list = []
-        for order in orders:
-            order_dict = order.to_dict()
-            # You may want to add party_name and quality_name here
-            order_list.append(order_dict)
-
+        # Orders are already in the correct format from get_all_orders_with_details
         return {
-            "orders": order_list,
+            "orders": orders,
             "page": page,
             "page_size": page_size,
             "total": total_count,
@@ -110,8 +108,8 @@ class OrderUseCase:
 
     async def search_orders(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """Search orders"""
-        orders = await self.order_repository.search(query, limit)
-        return [order.to_dict() for order in orders]
+        orders = await self.order_repository.search_with_details(query, limit)
+        return orders
 
     async def calculate_beam_preview(
         self,

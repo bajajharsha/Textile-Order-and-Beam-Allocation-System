@@ -64,13 +64,11 @@ async def cleanup_duplicate_order_items():
                     # Keep this item and update design_number to "ALL"
                     unique_items[key] = item
 
-                    # Update the design_number to "ALL" if it's not already
-                    if item["design_number"] != "ALL":
-                        client.table("order_items").update({"design_number": "ALL"}).eq(
-                            "id", item["id"]
-                        ).execute()
+                    # Update the design_number to comma-separated format if it's not already
+                    if item["design_number"] == "ALL":
+                        # For existing "ALL" entries, we'll keep them as is since we don't have the original design numbers
                         print(
-                            f"  Updated item design_number to 'ALL': {item['ground_color_name']} - beam_color_id: {item['beam_color_id']}"
+                            f"  Keeping existing 'ALL' design_number: {item['ground_color_name']} - beam_color_id: {item['beam_color_id']}"
                         )
 
             # Deactivate duplicate items
