@@ -8,6 +8,8 @@ import BeamAllocationTable from './components/Tables/BeamAllocationTable';
 import OrderTable from './components/Tables/OrderTable';
 import PartyTable from './components/Tables/PartyTable';
 import { ThemeProvider } from './contexts/ThemeContext';
+import LotRegister from './pages/LotRegister';
+import PartywiseDetail from './pages/PartywiseDetail';
 import { BeamColorSummary, OrderResponse, Party } from './services/api';
 import './styles/globals.css';
 
@@ -218,6 +220,12 @@ function App() {
             </div>
           </div>
         );
+      
+      case 'partywise-detail':
+        return <PartywiseDetail />;
+      
+      case 'lot-register':
+        return <LotRegister />;
       
       default:
         return null;

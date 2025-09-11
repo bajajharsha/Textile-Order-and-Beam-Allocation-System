@@ -82,6 +82,9 @@ class OrderRepository:
             }
         ).eq("id", order.id).execute()
 
+        # Initialize order item status for lot allocation
+        await self._initialize_order_item_status(order.id, client)
+
         # Return updated order
         return await self.get_by_id(order.id)
 
@@ -619,6 +622,77 @@ class OrderRepository:
             .execute()
         )
         return result.count or 0
+
+    async def _initialize_order_item_status(self, order_id: int, client) -> None:
+        """Initialize order item status for lot allocation tracking"""
+
+        # Get order details
+        order_result = (
+            client.table("orders")
+            .select("units, total_designs")
+            .eq("id", order_id)
+            .execute()
+        )
+
+        if not order_result.data:
+            return
+
+        order = order_result.data[0]
+
+        # Get order items
+        items_result = (
+            client.table("order_items")
+            .select("*")
+            .eq("order_id", order_id)
+            .eq("is_active", True)
+            .execute()
+        )
+
+        # Create status entries for each unique design/color combination
+        for item in items_result.data:
+            # Calculate total pieces for this item
+            # Since we store comma-separated design numbers, we need to split and count
+            design_numbers = []
+            if item["design_number"] and item["design_number"] != "ALL":
+                design_numbers = [
+                    d.strip() for d in item["design_number"].split(",") if d.strip()
+                ]
+            else:
+                # For old orders with "ALL", use total_designs
+                design_numbers = [
+                    f"D{i + 1:03d}" for i in range(order["total_designs"])
+                ]
+
+            # For each design number, create a status entry
+            for design_number in design_numbers:
+                # Calculate total pieces for this specific design/color combination
+                total_pieces = order["units"]  # Units per design per color
+
+                status_data = {
+                    "order_id": order_id,
+                    "design_number": design_number,
+                    "ground_color_name": item["ground_color_name"],
+                    "beam_color_id": item["beam_color_id"],
+                    "total_pieces": total_pieces,
+                    "allocated_pieces": 0,
+                    "remaining_pieces": total_pieces,
+                    "created_at": get_ist_timestamp(),
+                    "updated_at": get_ist_timestamp(),
+                }
+
+                # Check if status already exists (avoid duplicates)
+                existing_result = (
+                    client.table("order_item_status")
+                    .select("id")
+                    .eq("order_id", order_id)
+                    .eq("design_number", design_number)
+                    .eq("ground_color_name", item["ground_color_name"])
+                    .eq("is_active", True)
+                    .execute()
+                )
+
+                if not existing_result.data:
+                    client.table("order_item_status").insert(status_data).execute()
 
     async def search(self, query: str, limit: int = 20) -> List[Order]:
         """Search orders by order number or design numbers"""

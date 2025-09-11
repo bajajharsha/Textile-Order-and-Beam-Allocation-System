@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -112,6 +112,160 @@ export interface BeamDetailByQuality {
   items: BeamDetailItem[];
 }
 
+// Lot Management Types
+export interface LotAllocationItem {
+  order_id: number;
+  design_number: string;
+  ground_color_name: string;
+  beam_color_id: number;
+  allocated_pieces: number;
+  notes?: string;
+}
+
+export interface LotCreate {
+  party_id: number;
+  quality_id: number;
+  lot_date?: string;
+  bill_number?: string;
+  actual_pieces?: number;
+  delivery_date?: string;
+  notes?: string;
+  allocations: LotAllocationItem[];
+}
+
+export interface LotUpdate {
+  bill_number?: string;
+  actual_pieces?: number;
+  delivery_date?: string;
+  status?: string;
+  notes?: string;
+}
+
+export interface LotAllocationResponse {
+  id: number;
+  lot_id: number;
+  order_id: number;
+  design_number: string;
+  ground_color_name: string;
+  beam_color_id: number;
+  allocated_pieces: number;
+  notes?: string;
+  created_at: string;
+  beam_color_name?: string;
+  beam_color_code?: string;
+}
+
+export interface LotResponse {
+  id: number;
+  lot_number: string;
+  lot_date: string;
+  party_id: number;
+  quality_id: number;
+  total_pieces: number;
+  bill_number?: string;
+  actual_pieces?: number;
+  delivery_date?: string;
+  status: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  party_name?: string;
+  quality_name?: string;
+  allocations: LotAllocationResponse[];
+}
+
+export interface PartywiseDetailItem {
+  date: string;
+  des_no: string;
+  quality: string;
+  units_pcs: number;
+  rate: number;
+  lot_no?: string;
+  lot_no_date?: string;
+  bill_no?: string;
+  actual_pcs?: number;
+  delivery_date?: string;
+  party_name: string;
+  order_id: number;
+  ground_color_name: string;
+  beam_color_name?: string;
+}
+
+export interface PartywiseDetailResponse {
+  party_name: string;
+  items: PartywiseDetailItem[];
+  total_remaining_pieces: number;
+  total_allocated_pieces: number;
+  total_value: number;
+}
+
+export interface LotRegisterItem {
+  lot_date?: string;
+  lot_no?: string;
+  party_name: string;
+  design_no: string;
+  quality: string;
+  total_pieces: number;
+  bill_no?: string;
+  actual_pieces?: number;
+  delivery_date?: string;
+  status: string;
+  lot_id?: number;
+  allocation_id?: number;
+  ground_color_name: string;
+  order_id: number;
+  order_item_id: number;
+  party_id: number;
+  quality_id: number;
+}
+
+export interface LotRegisterResponse {
+  items: LotRegisterItem[];
+  total_lots: number;
+  total_pieces: number;
+  total_delivered: number;
+}
+
+export interface OrderItemStatusResponse {
+  id: number;
+  order_id: number;
+  design_number: string;
+  ground_color_name: string;
+  beam_color_id: number;
+  total_pieces: number;
+  allocated_pieces: number;
+  remaining_pieces: number;
+  order_number?: string;
+  party_name?: string;
+  quality_name?: string;
+  beam_color_name?: string;
+  beam_color_code?: string;
+  rate_per_piece?: number;
+}
+
+export interface BeamSummaryWithAllocation {
+  party_name: string;
+  quality_name: string;
+  beam_color_code: string;
+  beam_color_name: string;
+  total_pieces: number;
+  allocated_pieces: number;
+  remaining_pieces: number;
+  design_count: number;
+  allocation_percentage?: number;
+}
+
+export interface AllocationSummary {
+  total_orders: number;
+  total_pieces: number;
+  allocated_pieces: number;
+  remaining_pieces: number;
+  allocation_percentage: number;
+  total_lots: number;
+  pending_lots: number;
+  completed_lots: number;
+}
+
 export interface OrderResponse {
   id: number;
   order_number: string;
@@ -211,6 +365,65 @@ export const orderApi = {
   
   search: (query: string, limit = 20) => 
     api.get<{ orders: OrderResponse[]; total: number }>(`/orders/search?q=${encodeURIComponent(query)}&limit=${limit}`)
+};
+
+export const lotApi = {
+  // Core lot management
+  getAll: (page = 1, pageSize = 20) => 
+    api.get<{ lots: LotResponse[]; total: number; page: number; page_size: number }>(`/lots?page=${page}&page_size=${pageSize}`),
+  
+  getById: (id: number) => 
+    api.get<LotResponse>(`/lots/${id}`),
+  
+  create: (data: LotCreate) => 
+    api.post<LotResponse>('/lots', data),
+  
+  update: (id: number, data: LotUpdate) => 
+    api.put<LotResponse>(`/lots/${id}`, data),
+  
+  delete: (id: number) => 
+    api.delete(`/lots/${id}`),
+
+  // Reports
+  getPartywiseDetail: (partyId?: number) => 
+    api.get<{ parties: PartywiseDetailResponse[]; total_parties: number; grand_total_pieces: number }>(
+      `/lots/reports/partywise-detail${partyId ? `?party_id=${partyId}` : ''}`
+    ),
+  
+  getLotRegister: (page = 1, pageSize = 20) => 
+    api.get<LotRegisterResponse>(`/lots/reports/lot-register?page=${page}&page_size=${pageSize}`),
+  
+  getBeamSummaryWithAllocation: () => 
+    api.get<{ qualities: any[]; summary: AllocationSummary }>('/lots/reports/beam-summary-allocation'),
+
+  // Allocation management
+  getOrderAllocationStatus: (orderId?: number) => 
+    api.get<OrderItemStatusResponse[]>(`/lots/allocation/status${orderId ? `?order_id=${orderId}` : ''}`),
+  
+  getAvailableAllocations: (partyId?: number, qualityId?: number) => {
+    const params = new URLSearchParams();
+    if (partyId) params.append('party_id', partyId.toString());
+    if (qualityId) params.append('quality_id', qualityId.toString());
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return api.get<OrderItemStatusResponse[]>(`/lots/allocation/available${queryString}`);
+  },
+  
+  initializeOrderStatus: (orderId: number) => 
+    api.post(`/lots/allocation/initialize/${orderId}`),
+
+  // Inline editing
+  updateLotField: (lotId: number, field: string, value: string) => 
+    api.patch<{ success: boolean; message: string }>(`/lots/${lotId}/field/${field}?value=${encodeURIComponent(value)}`),
+
+  // Create lot from register
+  createLotFromRegister: (data: {
+    order_id: number;
+    lot_number: string;
+    lot_date: string;
+    party_id: number;
+    quality_id: number;
+  }) => 
+    api.post<{ success: boolean; message: string }>('/lots/create-from-register', data)
 };
 
 export default api;

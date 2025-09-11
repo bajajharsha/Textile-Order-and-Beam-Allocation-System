@@ -1,4 +1,4 @@
-import { BarChart3, ChevronLeft, ChevronRight, ShoppingCart, Users } from 'lucide-react';
+import { BarChart3, BookOpen, ChevronLeft, ChevronRight, FileText, ShoppingCart, Users } from 'lucide-react';
 import React, { useState } from 'react';
 
 interface NavigationProps {
@@ -34,6 +34,18 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, onSideb
       label: 'Beam Allocation',
       icon: BarChart3,
       description: 'View beam calculations'
+    },
+    {
+      id: 'partywise-detail',
+      label: 'Partywise Detail',
+      icon: FileText,
+      description: 'View order details by party'
+    },
+    {
+      id: 'lot-register',
+      label: 'Lot Register',
+      icon: BookOpen,
+      description: 'View and manage lot register'
     }
   ];
 

@@ -9,6 +9,7 @@ import uvicorn
 from config.database import database
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from routes.lot_routes import router as lot_router
 from routes.master_routes import router as master_router
 from routes.order_routes import router as order_router
 from routes.party_routes import router as party_router
@@ -56,6 +57,7 @@ app.add_middleware(
 app.include_router(party_router, prefix="/api/v1/parties", tags=["parties"])
 app.include_router(master_router, prefix="/api/v1/master", tags=["master-data"])
 app.include_router(order_router, prefix="/api/v1/orders", tags=["orders"])
+app.include_router(lot_router, prefix="/api/v1/lots", tags=["lots"])
 
 
 # Root endpoint
@@ -69,4 +71,4 @@ async def root():
 
 
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8001, reload=True)

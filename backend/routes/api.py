@@ -6,6 +6,7 @@ Layer 1: Presentation Layer - API Router
 from fastapi import APIRouter
 
 from routes.health_routes import router as health_router
+from routes.lot_routes import router as lot_router
 from routes.master_routes import router as master_router
 from routes.order_routes import router as order_router
 from routes.party_routes import router as party_router
@@ -17,6 +18,7 @@ api_router = APIRouter()
 api_router.include_router(health_router)
 api_router.include_router(party_router)
 api_router.include_router(order_router)
+api_router.include_router(lot_router)
 api_router.include_router(master_router)
 
 
@@ -33,6 +35,7 @@ async def api_root():
             "health": "/health",
             "parties": "/parties",
             "orders": "/orders",
+            "lots": "/lots",
             "master_data": "/master",
         },
     }
