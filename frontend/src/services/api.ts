@@ -415,7 +415,7 @@ export const lotApi = {
   updateLotField: (lotId: number, field: string, value: string) => 
     api.patch<{ success: boolean; message: string }>(`/lots/${lotId}/field/${field}?value=${encodeURIComponent(value)}`),
 
-  // Create lot from register
+  // Create lot from register (legacy - creates one lot for entire order)
   createLotFromRegister: (data: {
     order_id: number;
     lot_number: string;
@@ -423,7 +423,21 @@ export const lotApi = {
     party_id: number;
     quality_id: number;
   }) => 
-    api.post<{ success: boolean; message: string }>('/lots/create-from-register', data)
+    api.post<{ success: boolean; message: string }>('/lots/create-from-register', data),
+
+  // Create lot for specific design (new - creates individual lot per design)
+  createLotForDesign: (data: {
+    order_id: number;
+    design_number: string;
+    lot_number: string;
+    lot_date: string;
+    party_id: number;
+    quality_id: number;
+    bill_number?: string;
+    actual_pieces?: number;
+    delivery_date?: string;
+  }) => 
+    api.post<{ success: boolean; message: string }>('/lots/create-for-design', data)
 };
 
 export default api;

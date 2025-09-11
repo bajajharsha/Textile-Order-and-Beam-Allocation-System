@@ -15,18 +15,21 @@ import './styles/globals.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('parties');
-  const [beamSummary, setBeamSummary] = useState<BeamColorSummary[]>([]);
   const [showPartyForm, setShowPartyForm] = useState(false);
   const [editingParty, setEditingParty] = useState<Party | undefined>();
   const [partyRefreshTrigger, setPartyRefreshTrigger] = useState(0);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<OrderResponse | undefined>();
   const [orderRefreshTrigger, setOrderRefreshTrigger] = useState(0);
+  const [lotRefreshTrigger, setLotRefreshTrigger] = useState(0);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const handleBeamCalculated = (summary: BeamColorSummary[]) => {
-    setBeamSummary(summary);
     setActiveTab('beam'); // Auto-switch to beam tab to show results
+  };
+
+  const handleLotUpdated = () => {
+    setLotRefreshTrigger(prev => prev + 1);
   };
 
 
@@ -73,7 +76,6 @@ function App() {
     setShowOrderForm(false);
     setEditingOrder(undefined);
     if (order.beam_summary) {
-      setBeamSummary(order.beam_summary);
       setActiveTab('beam');
     }
   };
@@ -222,10 +224,10 @@ function App() {
         );
       
       case 'partywise-detail':
-        return <PartywiseDetail />;
+        return <PartywiseDetail refreshTrigger={lotRefreshTrigger} />;
       
       case 'lot-register':
-        return <LotRegister />;
+        return <LotRegister onLotUpdated={handleLotUpdated} />;
       
       default:
         return null;

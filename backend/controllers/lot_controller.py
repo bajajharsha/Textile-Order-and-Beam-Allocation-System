@@ -79,3 +79,7 @@ class LotController:
     async def create_lot_from_register(self, lot_data: dict) -> Dict:
         """Handle create lot from register request"""
         return await self.lot_service.create_lot_from_register(lot_data)
+
+    async def create_lot_for_design(self, lot_data: dict) -> Dict:
+        """Handle create lot for specific design request"""
+        return await self.lot_service.create_lot_for_design(lot_data)

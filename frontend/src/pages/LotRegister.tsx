@@ -1,7 +1,11 @@
 import React from 'react';
 import LotRegisterTable from '../components/Tables/LotRegisterTable';
 
-const LotRegister: React.FC = () => {
+interface LotRegisterProps {
+  onLotUpdated?: () => void;
+}
+
+const LotRegister: React.FC<LotRegisterProps> = ({ onLotUpdated }) => {
   return (
     <div className="space-y-6">
       <div className="container">
@@ -17,7 +21,7 @@ const LotRegister: React.FC = () => {
       
       <div className="container">
         <div className="table-section">
-          <LotRegisterTable />
+          <LotRegisterTable onLotUpdated={onLotUpdated} />
         </div>
       </div>
     </div>

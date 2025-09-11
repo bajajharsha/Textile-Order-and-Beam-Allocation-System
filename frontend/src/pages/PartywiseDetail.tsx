@@ -1,7 +1,11 @@
 import React from 'react';
 import PartywiseDetailTable from '../components/Tables/PartywiseDetailTable';
 
-const PartywiseDetail: React.FC = () => {
+interface PartywiseDetailProps {
+  refreshTrigger?: number;
+}
+
+const PartywiseDetail: React.FC<PartywiseDetailProps> = ({ refreshTrigger = 0 }) => {
   return (
     <div className="space-y-6">
       <div className="container">
@@ -17,7 +21,7 @@ const PartywiseDetail: React.FC = () => {
       
       <div className="container">
         <div className="table-section">
-          <PartywiseDetailTable />
+          <PartywiseDetailTable refreshTrigger={refreshTrigger} />
         </div>
       </div>
     </div>

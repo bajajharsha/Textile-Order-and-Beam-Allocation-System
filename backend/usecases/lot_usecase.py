@@ -323,3 +323,36 @@ class LotUseCase:
         except Exception as e:
             self.logger.error(f"Error creating lot from register: {str(e)}")
             raise
+
+    async def create_lot_for_design(
+        self,
+        order_id: int,
+        design_number: str,
+        lot_number: str,
+        lot_date: str,
+        party_id: int,
+        quality_id: int,
+        bill_number: str = None,
+        actual_pieces: int = None,
+        delivery_date: str = None,
+    ) -> dict:
+        """Create a lot for a specific design when lot number is entered in the register"""
+        try:
+            created_lot = await self.lot_repository.create_lot_for_design(
+                order_id,
+                design_number,
+                lot_number,
+                lot_date,
+                party_id,
+                quality_id,
+                bill_number,
+                actual_pieces,
+                delivery_date,
+            )
+            self.logger.info(
+                f"Created lot {lot_number} for design {design_number} from order {order_id}"
+            )
+            return created_lot
+        except Exception as e:
+            self.logger.error(f"Error creating lot for design: {str(e)}")
+            raise

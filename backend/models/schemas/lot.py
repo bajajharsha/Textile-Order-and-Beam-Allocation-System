@@ -194,7 +194,7 @@ class LotRegisterItem(BaseModel):
     allocation_id: Optional[int] = None
     ground_color_name: Optional[str] = None
     order_id: int
-    order_item_id: int
+    order_item_id: Optional[int] = None
     party_id: int
     quality_id: int
 

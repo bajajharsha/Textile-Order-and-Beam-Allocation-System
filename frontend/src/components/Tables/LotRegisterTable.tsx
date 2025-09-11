@@ -3,21 +3,42 @@ import { lotApi, LotRegisterItem } from '../../services/api';
 
 interface LotRegisterTableProps {
   refreshTrigger?: number;
+  onLotUpdated?: () => void;
 }
 
-const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0 }) => {
+interface GroupedData {
+  [partyName: string]: LotRegisterItem[];
+}
+
+const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0, onLotUpdated }) => {
   const [data, setData] = useState<LotRegisterItem[]>([]);
+  const [groupedData, setGroupedData] = useState<GroupedData>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingCell, setEditingCell] = useState<{ rowIndex: number; field: string } | null>(null);
+  const [editingCell, setEditingCell] = useState<{ partyName: string; rowIndex: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const [expandedParties, setExpandedParties] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
       const response = await lotApi.getLotRegister();
-      setData(response.data.items || []);
+      const items = response.data.items || [];
+      setData(items);
+      
+      // Group data by party name
+      const grouped: GroupedData = {};
+      items.forEach(item => {
+        if (!grouped[item.party_name]) {
+          grouped[item.party_name] = [];
+        }
+        grouped[item.party_name].push(item);
+      });
+      setGroupedData(grouped);
+      
+      // Auto-expand all parties initially
+      setExpandedParties(new Set(Object.keys(grouped)));
     } catch (err) {
       console.error('Error fetching lot register:', err);
       setError('Failed to fetch lot register data');
@@ -35,55 +56,91 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0 
     return new Date(dateString).toLocaleDateString('en-GB');
   };
 
-  const handleCellClick = (rowIndex: number, field: string, currentValue: any) => {
+  const togglePartyExpansion = (partyName: string) => {
+    const newExpanded = new Set(expandedParties);
+    if (newExpanded.has(partyName)) {
+      newExpanded.delete(partyName);
+    } else {
+      newExpanded.add(partyName);
+    }
+    setExpandedParties(newExpanded);
+  };
+
+  const handleCellClick = (partyName: string, rowIndex: number, field: string, currentValue: any) => {
     // Only allow editing of manually entered fields
-    const editableFields = ['bill_no', 'actual_pieces', 'delivery_date'];
+    const editableFields = ['lot_date', 'lot_no', 'bill_no', 'actual_pieces', 'delivery_date'];
     if (!editableFields.includes(field)) return;
 
-    setEditingCell({ rowIndex, field });
+    setEditingCell({ partyName, rowIndex, field });
     setEditValue(currentValue?.toString() || '');
   };
 
   const handleCellBlur = async () => {
     if (!editingCell) return;
 
-    const { rowIndex, field } = editingCell;
-    const item = data[rowIndex];
+    const { partyName, rowIndex, field } = editingCell;
+    const item = groupedData[partyName][rowIndex];
+    
     
     try {
-      // If lot_no is being entered and there's no lot_id, create a new lot
+      // Map frontend field names to backend field names
+      const fieldMapping: { [key: string]: string } = {
+        'lot_no': 'lot_number',
+        'bill_no': 'bill_number',
+        'lot_date': 'lot_date',
+        'actual_pieces': 'actual_pieces',
+        'delivery_date': 'delivery_date'
+      };
+      
+      const backendField = fieldMapping[field] || field;
+      
+      // If lot_no is being entered and there's no lot_id, create a new lot for this specific design
       if (field === 'lot_no' && !item.lot_id && editValue.trim()) {
-        // Create lot from order
+        // Create lot for this specific design only
         const lotData = {
           order_id: item.order_id,
+          design_number: item.design_no,
           lot_number: editValue.trim(),
           lot_date: new Date().toISOString().split('T')[0], // Today's date
           party_id: item.party_id,
           quality_id: item.quality_id
         };
         
-        await lotApi.createLotFromRegister(lotData);
+        await lotApi.createLotForDesign(lotData);
         
         // Refresh data to show the new lot
         await fetchData();
+        
+        // Notify parent component that lot was updated
+        onLotUpdated?.();
       } else if (item.lot_id) {
         // Update existing lot field
-        await lotApi.updateLotField(item.lot_id, field, editValue);
+        await lotApi.updateLotField(item.lot_id, backendField, editValue);
         
         // Update local state
-        const newData = [...data];
-        newData[rowIndex] = {
-          ...newData[rowIndex],
+        const newGroupedData = { ...groupedData };
+        newGroupedData[partyName][rowIndex] = {
+          ...newGroupedData[partyName][rowIndex],
           [field]: field === 'actual_pieces' ? (editValue ? parseInt(editValue) : null) : editValue
         };
-        setData(newData);
+        setGroupedData(newGroupedData);
+        
+        // Notify parent component that lot was updated
+        onLotUpdated?.();
+      } else if (!item.lot_id && field !== 'lot_no') {
+        // If trying to edit other fields without a lot, show error
+        setError('Please enter a lot number first before editing other fields');
+        setEditingCell(null);
+        setEditValue('');
+        return;
       }
       
       setEditingCell(null);
       setEditValue('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating field:', err);
-      setError('Failed to update field');
+      console.error('Error details:', err.response?.data || err.message);
+      setError(`Failed to update field: ${err.response?.data?.detail || err.message}`);
       setEditingCell(null);
       setEditValue('');
     }
@@ -98,14 +155,14 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0 
     }
   };
 
-  const renderCell = (item: LotRegisterItem, rowIndex: number, field: string) => {
-    const isEditing = editingCell?.rowIndex === rowIndex && editingCell?.field === field;
+  const renderCell = (item: LotRegisterItem, partyName: string, rowIndex: number, field: string) => {
+    const isEditing = editingCell?.partyName === partyName && editingCell?.rowIndex === rowIndex && editingCell?.field === field;
     const value = item[field as keyof LotRegisterItem];
     
     if (isEditing) {
       return (
         <input
-          type={field === 'actual_pieces' ? 'number' : field === 'delivery_date' ? 'date' : 'text'}
+          type={field === 'actual_pieces' ? 'number' : (field === 'delivery_date' || field === 'lot_date') ? 'date' : 'text'}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleCellBlur}
@@ -120,12 +177,12 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0 
       ? formatDate(value as string)
       : value?.toString() || '-';
 
-    const isEditable = ['bill_no', 'actual_pieces', 'delivery_date'].includes(field);
+    const isEditable = ['lot_date', 'lot_no', 'bill_no', 'actual_pieces', 'delivery_date'].includes(field);
     
     return (
       <span 
         className={isEditable ? 'editable-cell' : ''}
-        onClick={() => handleCellClick(rowIndex, field, value)}
+        onClick={() => handleCellClick(partyName, rowIndex, field, value)}
       >
         {displayValue}
       </span>
@@ -156,7 +213,7 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0 
     );
   }
 
-  if (data.length === 0) {
+  if (Object.keys(groupedData).length === 0) {
     return (
       <div className="table-container">
         <div className="table-empty">
@@ -177,47 +234,12 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0 
         </div>
       </div>
 
-      <div className="table-wrapper">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Lot No. Date</th>
-              <th>Lot No.</th>
-              <th>Party Name</th>
-              <th>Design No.</th>
-              <th>Quality</th>
-              <th>Total Pieces</th>
-              <th>Bill No.</th>
-              <th>Actual Pieces</th>
-              <th>Delivery Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item, index) => (
-              <tr key={`${item.lot_id}-${item.allocation_id}-${item.design_no}`} className="data-row">
-                <td>{renderCell(item, index, 'lot_date')}</td>
-                <td>{renderCell(item, index, 'lot_no')}</td>
-                <td>{renderCell(item, index, 'party_name')}</td>
-                <td>{renderCell(item, index, 'design_no')}</td>
-                <td>{renderCell(item, index, 'quality')}</td>
-                <td>{renderCell(item, index, 'total_pieces')}</td>
-                <td>{renderCell(item, index, 'bill_no')}</td>
-                <td>{renderCell(item, index, 'actual_pieces')}</td>
-                <td>{renderCell(item, index, 'delivery_date')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
       {/* Summary Section */}
       <div className="table-summary">
         <div className="summary-stats">
           <div className="stat-item">
-            <span className="stat-label">Total Lots:</span>
-            <span className="stat-value">
-              {new Set(data.map(item => item.lot_id)).size}
-            </span>
+            <span className="stat-label">Total Parties:</span>
+            <span className="stat-value">{Object.keys(groupedData).length}</span>
           </div>
           <div className="stat-item">
             <span className="stat-label">Total Designs:</span>
@@ -231,6 +253,74 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0 
           </div>
         </div>
       </div>
+
+      {/* Grouped Data by Party */}
+      <div className="space-y-4">
+        {Object.entries(groupedData).map(([partyName, items]) => (
+          <div key={partyName} className="border border-gray-200 rounded-lg overflow-hidden">
+            {/* Party Header */}
+            <div 
+              className="bg-gray-50 px-4 py-3 cursor-pointer hover:bg-gray-100"
+              onClick={() => togglePartyExpansion(partyName)}
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg font-semibold text-gray-800">
+                    {expandedParties.has(partyName) ? '▼' : '▶'} {partyName}
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    ({items.length} designs)
+                  </span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-600">
+                    Total Pieces: {items.reduce((sum, item) => sum + item.total_pieces, 0).toLocaleString()}
+                  </div>
+                  <div className="text-sm font-medium text-gray-800">
+                    Lots: {new Set(items.map(item => item.lot_id).filter(id => id)).size}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Party Items */}
+            {expandedParties.has(partyName) && (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lot No. Date</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lot No.</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Design No.</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quality</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Pieces</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bill No.</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actual Pieces</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Delivery Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {items.map((item, index) => (
+                      <tr key={`${item.lot_id}-${item.allocation_id}-${item.design_no}`} className={item.lot_no ? 'bg-green-50' : 'bg-yellow-50'}>
+                        <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'lot_date')}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'lot_no')}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{item.design_no}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{item.quality}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{item.total_pieces.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'bill_no')}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'actual_pieces')}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'delivery_date')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+
     </div>
   );
 };
