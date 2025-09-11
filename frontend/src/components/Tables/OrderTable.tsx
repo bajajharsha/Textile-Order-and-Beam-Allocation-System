@@ -87,10 +87,39 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'INR'
     }).format(amount);
+  };
+
+  // Format beam colors as R-1, B-2 format
+  const formatBeamColors = (beamSummary: any) => {
+    if (!beamSummary || typeof beamSummary !== 'object') return 'N/A';
+    
+    const formatted = Object.entries(beamSummary)
+      .map(([color, count]) => `${color}-${count}`)
+      .join(', ');
+    
+    return formatted || 'N/A';
+  };
+
+  // Format design numbers
+  const formatDesignNumbers = (designNumbers: string[]) => {
+    if (!designNumbers || designNumbers.length === 0) return 'N/A';
+    return designNumbers.join(', ');
+  };
+
+  // Format ground colors
+  const formatGroundColors = (groundColors: any[]) => {
+    if (!groundColors || groundColors.length === 0) return 'N/A';
+    return groundColors.map(gc => gc.ground_color_name || 'N/A').join(', ');
+  };
+
+  // Format cuts
+  const formatCuts = (cuts: string[]) => {
+    if (!cuts || cuts.length === 0) return 'N/A';
+    return cuts.join(', ');
   };
 
   return (
@@ -102,7 +131,7 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
             <Search className="search-icon" size={20} />
             <input
               type="text"
-              placeholder="Search orders by party name or order number..."
+              placeholder="Search orders by party name, quality, or design numbers..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="form-input search-input"
@@ -120,30 +149,28 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
           <table className="w-full">
             <thead>
               <tr>
-                <th>Order #</th>
-                <th>Party ID</th>
-                <th>Quality ID</th>
-                <th>Units</th>
-                <th>Rate/Piece (₹)</th>
-                <th>Designs</th>
-                <th>Total Pieces</th>
-                <th>Total Value</th>
-                <th>Order Date</th>
-                <th>Created</th>
+                <th>Party Name</th>
+                <th>Quality</th>
+                <th>Cut (Quality)</th>
+                <th>Design Numbers</th>
+                <th>Rate (per pc)</th>
+                <th>Units (pieces)</th>
+                <th>Ground Color</th>
+                <th>Beam Color</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={11} className="text-center py-8">
+                  <td colSpan={9} className="text-center py-8">
                     <div className="loading"></div>
                     <span className="ml-2">Loading orders...</span>
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="text-center py-8 text-gray-500">
+                  <td colSpan={9} className="text-center py-8 text-gray-500">
                     No orders found
                   </td>
                 </tr>
@@ -151,40 +178,28 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
                 filteredOrders.map((order) => (
                   <tr key={order.id}>
                     <td className="py-3 px-4">
-                      <div className="font-medium">#{order.order_number}</div>
+                      <div className="font-medium">{order.party_name || 'N/A'}</div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-medium">Party #{order.party_id || 'N/A'}</div>
+                      <div className="font-medium">{order.quality_name || 'N/A'}</div>
                     </td>
                     <td className="py-3 px-4">
-                      <div>Quality #{order.quality_id || 'N/A'}</div>
+                      <div>{formatCuts(order.cuts)}</div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-medium">{order.units || 'N/A'}</div>
+                      <div className="font-medium">{formatDesignNumbers(order.design_numbers)}</div>
                     </td>
                     <td className="py-3 px-4">
                       <div>₹{(order.rate_per_piece || 0).toFixed(2)}</div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-medium">{order.total_designs}</div>
+                      <div className="font-medium">{order.units || 'N/A'}</div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-medium">{order.total_pieces}</div>
+                      <div>{formatGroundColors(order.ground_colors)}</div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-medium text-green-600">
-                        {formatCurrency(order.total_value)}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm text-gray-500">
-                        {order.order_date ? formatDate(order.order_date) : 'N/A'}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm text-gray-500">
-                        {formatDate(order.created_at)}
-                      </div>
+                      <div className="font-medium">{formatBeamColors(order.beam_summary)}</div>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">

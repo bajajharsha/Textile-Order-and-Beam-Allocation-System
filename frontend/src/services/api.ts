@@ -124,9 +124,18 @@ export interface OrderResponse {
   total_pieces: number;
   total_value: number;
   notes?: string;
-  beam_summary?: BeamColorSummary[];
+  is_active: boolean;
   created_at: string;
   updated_at: string;
+  
+  // Related data
+  party_name?: string;
+  quality_name?: string;
+  cuts: string[];
+  design_numbers: string[];
+  ground_colors: GroundColorItem[];
+  beam_summary: { [key: string]: number }; // {"R": 1, "B": 2}
+  beam_colors: BeamColorSummary[];
 }
 
 export interface DropdownData {

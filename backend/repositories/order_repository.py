@@ -50,20 +50,18 @@ class OrderRepository:
             }
             client.table("order_cuts").insert(cut_data).execute()
 
-        # Create order items and calculate beam summary
+        # Create order items for ground colors only (not per design)
         ground_colors = order_data["ground_colors"]
 
-        for i, design_number in enumerate(order_data["design_numbers"]):
-            # For each design, create items for each ground color
-            for ground_color in ground_colors:
-                item_data = {
-                    "order_id": order.id,
-                    "design_number": design_number,
-                    "ground_color_name": ground_color["ground_color_name"],
-                    "beam_color_id": ground_color["beam_color_id"],
-                    "created_at": get_ist_timestamp(),
-                }
-                client.table("order_items").insert(item_data).execute()
+        for ground_color in ground_colors:
+            item_data = {
+                "order_id": order.id,
+                "design_number": "ALL",  # Use placeholder since designs are stored separately
+                "ground_color_name": ground_color["ground_color_name"],
+                "beam_color_id": ground_color["beam_color_id"],
+                "created_at": get_ist_timestamp(),
+            }
+            client.table("order_items").insert(item_data).execute()
 
         # Calculate totals and update order
         beam_summary = await self._calculate_beam_summary(order.id, client)
@@ -170,17 +168,16 @@ class OrderRepository:
                 "order_id", order_id
             ).execute()
 
-            # Create new items
-            for design_number in update_data["design_numbers"]:
-                for ground_color in update_data["ground_colors"]:
-                    item_data = {
-                        "order_id": order_id,
-                        "design_number": design_number,
-                        "ground_color_name": ground_color["ground_color_name"],
-                        "beam_color_id": ground_color["beam_color_id"],
-                        "created_at": get_ist_timestamp(),
-                    }
-                    client.table("order_items").insert(item_data).execute()
+            # Create new items for ground colors only (not per design)
+            for ground_color in update_data["ground_colors"]:
+                item_data = {
+                    "order_id": order_id,
+                    "design_number": "ALL",  # Use placeholder since designs are stored separately
+                    "ground_color_name": ground_color["ground_color_name"],
+                    "beam_color_id": ground_color["beam_color_id"],
+                    "created_at": get_ist_timestamp(),
+                }
+                client.table("order_items").insert(item_data).execute()
 
             # Recalculate totals
             beam_summary = await self._calculate_beam_summary(order_id, client)
