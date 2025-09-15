@@ -45,10 +45,15 @@ class LotController:
         return await self.lot_service.get_partywise_detail(party_id)
 
     async def get_lot_register(
-        self, page: int = 1, page_size: int = 20
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        lot_register_type: Optional[str] = None,
     ) -> LotRegisterResponse:
         """Handle lot register request"""
-        return await self.lot_service.get_lot_register(page, page_size)
+        return await self.lot_service.get_lot_register(
+            page, page_size, lot_register_type
+        )
 
     async def get_order_allocation_status(
         self, order_id: Optional[int] = None

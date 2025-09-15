@@ -4,13 +4,14 @@ import { lotApi, LotRegisterItem } from '../../services/api';
 interface LotRegisterTableProps {
   refreshTrigger?: number;
   onLotUpdated?: () => void;
+  lotRegisterType?: string;
 }
 
 interface GroupedData {
   [partyName: string]: LotRegisterItem[];
 }
 
-const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0, onLotUpdated }) => {
+const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0, onLotUpdated, lotRegisterType }) => {
   const [data, setData] = useState<LotRegisterItem[]>([]);
   const [groupedData, setGroupedData] = useState<GroupedData>({});
   const [loading, setLoading] = useState(true);
@@ -23,8 +24,10 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
     try {
       setLoading(true);
       setError(null);
-      const response = await lotApi.getLotRegister();
+      console.log('Fetching lot register data for type:', lotRegisterType);
+      const response = await lotApi.getLotRegister(1, 100, lotRegisterType || undefined);
       const items = response.data.items || [];
+      console.log('Received lot register items:', items.length);
       setData(items);
       
       // Group data by party name
@@ -49,7 +52,7 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
 
   useEffect(() => {
     fetchData();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, lotRegisterType]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';

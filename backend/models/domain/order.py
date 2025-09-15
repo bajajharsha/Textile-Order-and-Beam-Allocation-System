@@ -18,6 +18,7 @@ class Order:
         quality_id: int = 0,
         sets: int = 0,
         pick: int = 0,
+        lot_register_type: str = "",
         order_date: Optional[Union[str, date]] = None,
         rate_per_piece: Union[Decimal, float] = 0.0,
         total_designs: int = 0,
@@ -34,6 +35,7 @@ class Order:
         self.quality_id = quality_id
         self.sets = sets
         self.pick = pick
+        self.lot_register_type = lot_register_type
         self.order_date = order_date
         self.rate_per_piece = (
             Decimal(str(rate_per_piece)) if rate_per_piece else Decimal("0.0")
@@ -55,6 +57,7 @@ class Order:
             "quality_id": self.quality_id,
             "sets": self.sets,
             "pick": self.pick,
+            "lot_register_type": self.lot_register_type,
             "order_date": self.order_date,
             "rate_per_piece": float(self.rate_per_piece),
             "total_designs": self.total_designs,
@@ -76,6 +79,7 @@ class Order:
             quality_id=data.get("quality_id", 0),
             sets=data.get("sets", 0),
             pick=data.get("pick", 0),
+            lot_register_type=data.get("lot_register_type", ""),
             order_date=data.get("order_date"),
             rate_per_piece=data.get("rate_per_piece", 0.0),
             total_designs=data.get("total_designs", 0),

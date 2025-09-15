@@ -53,6 +53,7 @@ CREATE TABLE orders (
     quality_id INTEGER REFERENCES qualities(id),
     sets INTEGER NOT NULL DEFAULT 0,
     pick INTEGER NOT NULL DEFAULT 0,
+    lot_register_type VARCHAR(20) NOT NULL DEFAULT 'High Speed',
     order_date DATE DEFAULT CURRENT_DATE,
     rate_per_piece DECIMAL(10,2) NOT NULL,
     total_designs INTEGER DEFAULT 0,

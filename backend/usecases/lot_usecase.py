@@ -134,12 +134,17 @@ class LotUseCase:
             self.logger.error(f"Error getting partywise detail: {str(e)}")
             raise
 
-    async def get_lot_register(self, page: int = 1, page_size: int = 20) -> dict:
+    async def get_lot_register(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        lot_register_type: Optional[str] = None,
+    ) -> dict:
         """Get lot register report"""
         try:
             offset = (page - 1) * page_size
             items = await self.lot_repository.get_lot_register(
-                limit=page_size, offset=offset
+                limit=page_size, offset=offset, lot_register_type=lot_register_type
             )
             total_count = await self.lot_repository.count_lots()
 

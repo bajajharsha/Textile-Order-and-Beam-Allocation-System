@@ -151,6 +151,7 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
               <tr>
                 <th>Party Name</th>
                 <th>Quality</th>
+                <th>Lot Register Type</th>
                 <th>Cut (Quality)</th>
                 <th>Design Numbers</th>
                 <th>Rate (per pc)</th>
@@ -164,14 +165,14 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-8">
+                  <td colSpan={11} className="text-center py-8">
                     <div className="loading"></div>
                     <span className="ml-2">Loading orders...</span>
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-8 text-gray-500">
+                  <td colSpan={11} className="text-center py-8 text-gray-500">
                     No orders found
                   </td>
                 </tr>
@@ -183,6 +184,9 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-medium">{order.quality_name || 'N/A'}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-medium">{order.lot_register_type || 'N/A'}</div>
                     </td>
                     <td className="py-3 px-4">
                       <div>{formatCuts(order.cuts)}</div>

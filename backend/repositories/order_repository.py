@@ -30,6 +30,7 @@ class OrderRepository:
             "quality_id": order_data["quality_id"],
             "sets": order_data["sets"],
             "pick": order_data["pick"],
+            "lot_register_type": order_data["lot_register_type"],
             "order_date": str(date.today()),
             "rate_per_piece": float(order_data["rate_per_piece"]),
             "total_designs": len(order_data["design_numbers"]),
@@ -508,6 +509,7 @@ class OrderRepository:
             "quality_id",
             "sets",
             "pick",
+            "lot_register_type",
             "rate_per_piece",
             "notes",
         ]:

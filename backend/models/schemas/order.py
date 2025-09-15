@@ -25,6 +25,7 @@ class OrderCreate(BaseModel):
     quality_id: int = Field(..., gt=0, description="Quality ID")
     sets: int = Field(..., gt=0, description="Number of sets")
     pick: int = Field(..., gt=0, description="Pick number")
+    lot_register_type: str = Field(..., description="Lot register type")
     cuts: List[str] = Field(..., min_items=1, description="List of cut values")
     rate_per_piece: Decimal = Field(
         ..., gt=0, max_digits=10, decimal_places=2, description="Rate per piece"
@@ -36,6 +37,17 @@ class OrderCreate(BaseModel):
         ..., min_items=1, description="Ground colors with beam colors"
     )
     notes: Optional[str] = Field(None, max_length=1000, description="Additional notes")
+
+    @field_validator("lot_register_type")
+    @classmethod
+    def validate_lot_register_type(cls, v):
+        """Validate lot register type"""
+        valid_types = ["High Speed", "Slow Speed", "K1K2"]
+        if v not in valid_types:
+            raise ValueError(
+                f"Lot register type must be one of: {', '.join(valid_types)}"
+            )
+        return v
 
     @field_validator("design_numbers")
     @classmethod
@@ -79,6 +91,7 @@ class OrderUpdate(BaseModel):
     quality_id: Optional[int] = Field(None, gt=0)
     sets: Optional[int] = Field(None, gt=0)
     pick: Optional[int] = Field(None, gt=0)
+    lot_register_type: Optional[str] = Field(None)
     cuts: Optional[List[str]] = Field(None, min_items=1)
     rate_per_piece: Optional[Decimal] = Field(
         None, gt=0, max_digits=10, decimal_places=2
@@ -86,6 +99,19 @@ class OrderUpdate(BaseModel):
     design_numbers: Optional[List[str]] = Field(None, min_items=1)
     ground_colors: Optional[List[GroundColorItem]] = Field(None, min_items=1)
     notes: Optional[str] = Field(None, max_length=1000)
+
+    @field_validator("lot_register_type")
+    @classmethod
+    def validate_lot_register_type(cls, v):
+        """Validate lot register type"""
+        if v is None:
+            return v
+        valid_types = ["High Speed", "Slow Speed", "K1K2"]
+        if v not in valid_types:
+            raise ValueError(
+                f"Lot register type must be one of: {', '.join(valid_types)}"
+            )
+        return v
 
     @field_validator("design_numbers")
     @classmethod
@@ -149,6 +175,7 @@ class OrderResponse(BaseModel):
     quality_id: int
     sets: int
     pick: int
+    lot_register_type: str
     order_date: str  # Date as string
     rate_per_piece: float
     total_designs: int

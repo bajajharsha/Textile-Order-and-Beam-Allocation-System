@@ -411,7 +411,9 @@ class LotRepository:
 
         return partywise_data
 
-    async def get_lot_register(self, limit: int = 50, offset: int = 0) -> List[dict]:
+    async def get_lot_register(
+        self, limit: int = 50, offset: int = 0, lot_register_type: Optional[str] = None
+    ) -> List[dict]:
         """Get lot register data - shows all orders with each design as separate row, grouped by party"""
         client = await self.db_client.get_client()
 
@@ -425,6 +427,11 @@ class LotRepository:
             """)
             .eq("is_active", True)
         )
+
+        # Filter by lot register type if provided
+        if lot_register_type:
+            print(f"Filtering orders by lot_register_type: {lot_register_type}")
+            orders_query = orders_query.eq("lot_register_type", lot_register_type)
 
         orders_result = orders_query.order("order_date", desc=True).execute()
 

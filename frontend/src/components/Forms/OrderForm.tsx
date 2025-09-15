@@ -24,6 +24,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
     quality_id: '',
     sets: '',
     pick: '',
+    lot_register_type: 'High Speed', // Set default value
     cuts: [] as string[],
     design_numbers: [''],
     rate_per_piece: '',
@@ -120,6 +121,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
 
     if (!formData.party_id) newErrors.party_id = 'Please select a party';
     if (!formData.quality_id) newErrors.quality_id = 'Please select a quality';
+    if (!formData.lot_register_type) newErrors.lot_register_type = 'Please select a lot register type';
     if (formData.cuts.length === 0) newErrors.cuts = 'Please select at least one cut';
     if (!formData.design_numbers.some(d => d.trim())) newErrors.design_numbers = 'Please enter at least one design number';
     if (!formData.sets || parseInt(formData.sets) <= 0) {
@@ -154,6 +156,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
         quality_id: parseInt(formData.quality_id),
         sets: parseInt(formData.sets),
         pick: parseInt(formData.pick),
+        lot_register_type: formData.lot_register_type,
         cuts: formData.cuts,
         design_numbers: validDesignNumbers,
         ground_colors: validGroundColors,
@@ -176,6 +179,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
         quality_id: '',
         sets: '',
         pick: '',
+        lot_register_type: 'High Speed', // Reset to default value
         cuts: [],
         design_numbers: [''],
         rate_per_piece: '',
@@ -232,7 +236,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Order Info */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
           <div className="form-group">
             <label htmlFor="party_id" className="form-label">
               Party Name *
@@ -275,6 +279,26 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
                ))}
             </select>
             {errors.quality_id && <p className="text-error text-sm mt-1">{errors.quality_id}</p>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="lot_register_type" className="form-label">
+              Lot Register Type *
+            </label>
+            <select
+              id="lot_register_type"
+              name="lot_register_type"
+              value={formData.lot_register_type}
+              onChange={handleInputChange}
+              className={`form-select ${errors.lot_register_type ? 'border-error' : ''}`}
+              disabled={loading}
+            >
+               <option value="">Select Lot Register Type</option>
+               <option value="High Speed">High Speed</option>
+               <option value="Slow Speed">Slow Speed</option>
+               <option value="K1K2">K1K2</option>
+            </select>
+            {errors.lot_register_type && <p className="text-error text-sm mt-1">{errors.lot_register_type}</p>}
           </div>
 
           <div className="form-group">

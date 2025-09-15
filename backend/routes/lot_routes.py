@@ -77,10 +77,13 @@ async def get_partywise_detail(
 async def get_lot_register(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    lot_register_type: Optional[str] = Query(
+        None, description="Filter by lot register type"
+    ),
     lot_controller: LotController = Depends(LotController),
 ):
     """Get lot register report"""
-    return await lot_controller.get_lot_register(page, page_size)
+    return await lot_controller.get_lot_register(page, page_size, lot_register_type)
 
 
 @router.get("/reports/beam-summary-allocation")

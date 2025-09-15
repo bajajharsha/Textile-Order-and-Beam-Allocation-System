@@ -76,6 +76,7 @@ export interface OrderCreate {
   quality_id: number;
   sets: number;
   pick: number;
+  lot_register_type: string;
   cuts: string[];
   design_numbers: string[];
   ground_colors: GroundColorItem[];
@@ -274,6 +275,7 @@ export interface OrderResponse {
   quality_id: number;
   sets: number;
   pick: number;
+  lot_register_type: string;
   order_date: string;
   rate_per_piece: number;
   total_designs: number;
@@ -392,8 +394,15 @@ export const lotApi = {
       `/lots/reports/partywise-detail${partyId ? `?party_id=${partyId}` : ''}`
     ),
   
-  getLotRegister: (page = 1, pageSize = 20) => 
-    api.get<LotRegisterResponse>(`/lots/reports/lot-register?page=${page}&page_size=${pageSize}`),
+  getLotRegister: (page = 1, pageSize = 20, lotRegisterType?: string) => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('page_size', pageSize.toString());
+    if (lotRegisterType) {
+      params.append('lot_register_type', lotRegisterType);
+    }
+    return api.get<LotRegisterResponse>(`/lots/reports/lot-register?${params.toString()}`);
+  },
   
   getBeamSummaryWithAllocation: () => 
     api.get<{ qualities: any[]; summary: AllocationSummary }>('/lots/reports/beam-summary-allocation'),

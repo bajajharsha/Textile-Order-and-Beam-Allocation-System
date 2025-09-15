@@ -189,12 +189,15 @@ class LotService:
         self,
         page: int = 1,
         page_size: int = 20,
+        lot_register_type: Optional[str] = None,
     ) -> LotRegisterResponse:
         """Get lot register report"""
         try:
             self.logger.debug("Generating lot register report")
 
-            result = await self.lot_usecase.get_lot_register(page, page_size)
+            result = await self.lot_usecase.get_lot_register(
+                page, page_size, lot_register_type
+            )
 
             return LotRegisterResponse(**result)
 
