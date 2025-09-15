@@ -1,11 +1,11 @@
 import { Plus, ShoppingCart, Trash2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import {
-  DropdownData,
-  GroundColorItem,
-  masterApi,
-  orderApi,
-  OrderCreate
+    DropdownData,
+    GroundColorItem,
+    masterApi,
+    orderApi,
+    OrderCreate
 } from '../../services/api';
 
 interface OrderFormProps {
@@ -22,7 +22,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
   const [formData, setFormData] = useState({
     party_id: '',
     quality_id: '',
-    units: '',
+    sets: '',
+    pick: '',
     cuts: [] as string[],
     design_numbers: [''],
     rate_per_piece: '',
@@ -121,8 +122,11 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
     if (!formData.quality_id) newErrors.quality_id = 'Please select a quality';
     if (formData.cuts.length === 0) newErrors.cuts = 'Please select at least one cut';
     if (!formData.design_numbers.some(d => d.trim())) newErrors.design_numbers = 'Please enter at least one design number';
-    if (!formData.units || parseInt(formData.units) <= 0) {
-      newErrors.units = 'Please enter a valid number of units';
+    if (!formData.sets || parseInt(formData.sets) <= 0) {
+      newErrors.sets = 'Please enter a valid number of sets';
+    }
+    if (!formData.pick || parseInt(formData.pick) <= 0) {
+      newErrors.pick = 'Please enter a valid pick number';
     }
     if (!formData.rate_per_piece || parseFloat(formData.rate_per_piece) <= 0) {
       newErrors.rate_per_piece = 'Please enter a valid rate per piece';
@@ -148,7 +152,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
       const orderData: OrderCreate = {
         party_id: parseInt(formData.party_id),
         quality_id: parseInt(formData.quality_id),
-        units: parseInt(formData.units),
+        sets: parseInt(formData.sets),
+        pick: parseInt(formData.pick),
         cuts: formData.cuts,
         design_numbers: validDesignNumbers,
         ground_colors: validGroundColors,
@@ -169,7 +174,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
       setFormData({
         party_id: '',
         quality_id: '',
-        units: '',
+        sets: '',
+        pick: '',
         cuts: [],
         design_numbers: [''],
         rate_per_piece: '',
@@ -226,7 +232,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Order Info */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div className="form-group">
             <label htmlFor="party_id" className="form-label">
               Party Name *
@@ -272,21 +278,39 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
           </div>
 
           <div className="form-group">
-            <label htmlFor="units" className="form-label">
-              Units *
+            <label htmlFor="sets" className="form-label">
+              Sets *
             </label>
             <input
               type="number"
-              id="units"
-              name="units"
-              value={formData.units}
+              id="sets"
+              name="sets"
+              value={formData.sets}
               onChange={handleInputChange}
-              className={`form-input ${errors.units ? 'border-error' : ''}`}
-              placeholder="Enter number of units"
+              className={`form-input ${errors.sets ? 'border-error' : ''}`}
+              placeholder="Enter number of sets"
               min="1"
               disabled={loading}
             />
-            {errors.units && <p className="text-error text-sm mt-1">{errors.units}</p>}
+            {errors.sets && <p className="text-error text-sm mt-1">{errors.sets}</p>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="pick" className="form-label">
+              Pick *
+            </label>
+            <input
+              type="number"
+              id="pick"
+              name="pick"
+              value={formData.pick}
+              onChange={handleInputChange}
+              className={`form-input ${errors.pick ? 'border-error' : ''}`}
+              placeholder="Enter pick number"
+              min="1"
+              disabled={loading}
+            />
+            {errors.pick && <p className="text-error text-sm mt-1">{errors.pick}</p>}
           </div>
         </div>
 

@@ -394,7 +394,7 @@ class LotRepository:
                         "date": order["order_date"],
                         "des_no": design_no,
                         "quality": order["qualities"]["quality_name"],
-                        "units_pcs": order["units"],  # Total units for this order
+                        "sets_pcs": order["sets"],  # Total sets for this order
                         "rate": order["rate_per_piece"],
                         "lot_no": lot_data["lot_number"] if lot_data else None,
                         "lot_no_date": lot_data["lot_date"] if lot_data else None,
@@ -544,7 +544,7 @@ class LotRepository:
                         "party_name": order["parties"]["party_name"],
                         "design_no": design_no,
                         "quality": order["qualities"]["quality_name"],
-                        "total_pieces": order["units"],  # Total units for this design
+                        "total_pieces": order["sets"],  # Total sets for this design
                         "bill_no": lot_data["bill_number"] if lot_data else None,
                         "actual_pieces": lot_data["actual_pieces"]
                         if lot_data
@@ -610,7 +610,7 @@ class LotRepository:
         # Get order details
         order_result = (
             client.table("orders")
-            .select("units, total_designs")
+            .select("sets, total_designs")
             .eq("id", order_id)
             .execute()
         )
@@ -633,8 +633,8 @@ class LotRepository:
             raise ValueError(f"No order items found for order {order_id}")
 
         # Calculate total pieces for this design
-        # Formula: units * 1 (since we're creating one lot per design)
-        total_pieces = order["units"]
+        # Formula: sets * 1 (since we're creating one lot per design)
+        total_pieces = order["sets"]
 
         # Create lot for this specific design
         lot_insert_data = {
@@ -702,7 +702,7 @@ class LotRepository:
         # Get order details
         order_result = (
             client.table("orders")
-            .select("units, total_designs")
+            .select("sets, total_designs")
             .eq("id", order_id)
             .execute()
         )
@@ -725,7 +725,7 @@ class LotRepository:
             raise ValueError(f"No order items found for order {order_id}")
 
         # Calculate total pieces for the entire order
-        total_pieces = order["units"] * order["total_designs"]
+        total_pieces = order["sets"] * order["total_designs"]
 
         # Create lot for the entire order
         lot_insert_data = {
@@ -922,7 +922,7 @@ class LotRepository:
         # Get order details for calculation
         order_result = (
             client.table("orders")
-            .select("units, total_designs")
+            .select("sets, total_designs")
             .eq("id", order_id)
             .execute()
         )
@@ -935,8 +935,8 @@ class LotRepository:
         # Create status entries for each unique design/color combination
         for item in items_result.data:
             # Calculate total pieces for this design/color combination
-            # Formula: units * total_designs * 1 (since each ground color maps to one beam color)
-            total_pieces = order["units"] * order["total_designs"]
+            # Formula: sets * total_designs * 1 (since each ground color maps to one beam color)
+            total_pieces = order["sets"] * order["total_designs"]
 
             status_data = {
                 "order_id": order_id,

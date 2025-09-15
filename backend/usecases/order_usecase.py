@@ -113,7 +113,7 @@ class OrderUseCase:
 
     async def calculate_beam_preview(
         self,
-        units: int,
+        sets: int,
         ground_colors: List[Dict],
         design_numbers: List[str],
     ) -> Dict[str, Any]:
@@ -136,8 +136,8 @@ class OrderUseCase:
             # Get color information
             color = await self.color_repository.get_by_id(beam_color_id)
             if color:
-                # Calculate pieces: Units × Total Designs × Beam Color Count
-                calculated_pieces = units * total_designs * count
+                # Calculate pieces: Sets × Total Designs × Beam Color Count
+                calculated_pieces = sets * total_designs * count
 
                 beam_color_info = {
                     "beam_color_id": beam_color_id,
@@ -218,7 +218,7 @@ class OrderUseCase:
                 color_per_beam = f"({','.join(color_per_beam_parts)})"
 
                 # Calculate pieces for each color using the formula:
-                # Units × Total Designs × Beam Color Count
+                # Sets × Total Designs × Beam Color Count
                 colors = {
                     "red": 0,
                     "firozi": 0,
@@ -251,7 +251,7 @@ class OrderUseCase:
                     color = await self.color_repository.get_by_id(color_id)
                     if color and color.color_code in color_mapping:
                         color_name = color_mapping[color.color_code]
-                        pieces = order.units * order.total_designs * count
+                        pieces = order.sets * order.total_designs * count
                         colors[color_name] = pieces
                         total_pieces += pieces
 

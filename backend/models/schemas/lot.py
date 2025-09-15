@@ -144,7 +144,7 @@ class PartywiseDetailItem(BaseModel):
     date: str  # Order date
     des_no: str  # Design number
     quality: str  # Quality name
-    units_pcs: int  # Remaining pieces
+    sets_pcs: int  # Remaining pieces
     rate: Decimal  # Rate per piece
     lot_no: Optional[str] = None  # Lot number (if allocated)
     lot_no_date: Optional[str] = None  # Lot date

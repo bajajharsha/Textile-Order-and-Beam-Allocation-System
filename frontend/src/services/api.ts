@@ -74,7 +74,8 @@ export interface GroundColorItem {
 export interface OrderCreate {
   party_id: number;
   quality_id: number;
-  units: number;
+  sets: number;
+  pick: number;
   cuts: string[];
   design_numbers: string[];
   ground_colors: GroundColorItem[];
@@ -178,7 +179,7 @@ export interface PartywiseDetailItem {
   date: string;
   des_no: string;
   quality: string;
-  units_pcs: number;
+  sets_pcs: number;
   rate: number;
   lot_no?: string;
   lot_no_date?: string;
@@ -271,7 +272,8 @@ export interface OrderResponse {
   order_number: string;
   party_id: number;
   quality_id: number;
-  units: number;
+  sets: number;
+  pick: number;
   order_date: string;
   rate_per_piece: number;
   total_designs: number;
@@ -348,7 +350,7 @@ export const orderApi = {
     api.post<OrderResponse>('/orders', data),
   
   calculateBeamPreview: (data: {
-    units: number;
+    sets: number;
     ground_colors: GroundColorItem[];
     design_numbers: string[];
   }) => 

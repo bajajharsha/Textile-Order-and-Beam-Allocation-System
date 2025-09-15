@@ -23,7 +23,8 @@ class OrderCreate(BaseModel):
 
     party_id: int = Field(..., gt=0, description="Party ID")
     quality_id: int = Field(..., gt=0, description="Quality ID")
-    units: int = Field(..., gt=0, description="Number of units")
+    sets: int = Field(..., gt=0, description="Number of sets")
+    pick: int = Field(..., gt=0, description="Pick number")
     cuts: List[str] = Field(..., min_items=1, description="List of cut values")
     rate_per_piece: Decimal = Field(
         ..., gt=0, max_digits=10, decimal_places=2, description="Rate per piece"
@@ -76,7 +77,8 @@ class OrderUpdate(BaseModel):
 
     party_id: Optional[int] = Field(None, gt=0)
     quality_id: Optional[int] = Field(None, gt=0)
-    units: Optional[int] = Field(None, gt=0)
+    sets: Optional[int] = Field(None, gt=0)
+    pick: Optional[int] = Field(None, gt=0)
     cuts: Optional[List[str]] = Field(None, min_items=1)
     rate_per_piece: Optional[Decimal] = Field(
         None, gt=0, max_digits=10, decimal_places=2
@@ -145,7 +147,8 @@ class OrderResponse(BaseModel):
     order_number: str
     party_id: int
     quality_id: int
-    units: int
+    sets: int
+    pick: int
     order_date: str  # Date as string
     rate_per_piece: float
     total_designs: int

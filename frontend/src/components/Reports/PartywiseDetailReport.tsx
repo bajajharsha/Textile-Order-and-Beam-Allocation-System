@@ -81,7 +81,7 @@ const PartywiseDetailReport: React.FC<PartywiseDetailReportProps> = ({ className
       'Date',
       'Design No.',
       'Quality',
-      'Units (pcs)',
+      'Sets (pcs)',
       'Rate',
       'Lot No.',
       'Lot Date',
@@ -99,7 +99,7 @@ const PartywiseDetailReport: React.FC<PartywiseDetailReportProps> = ({ className
           item.date,
           item.des_no,
           item.quality,
-          item.units_pcs.toString(),
+          item.sets_pcs.toString(),
           item.rate.toString(),
           item.lot_no || '',
           item.lot_no_date || '',
@@ -258,7 +258,7 @@ const PartywiseDetailReport: React.FC<PartywiseDetailReportProps> = ({ className
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Des No.</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quality</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Units (pcs)</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Sets (pcs)</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lot No.</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lot Date</th>
@@ -273,7 +273,7 @@ const PartywiseDetailReport: React.FC<PartywiseDetailReportProps> = ({ className
                             <td className="px-4 py-2 text-sm text-gray-900">{formatDate(item.date)}</td>
                             <td className="px-4 py-2 text-sm text-gray-900">{item.des_no}</td>
                             <td className="px-4 py-2 text-sm text-gray-900">{item.quality}</td>
-                            <td className="px-4 py-2 text-sm text-gray-900">{item.units_pcs.toLocaleString()}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{item.sets_pcs.toLocaleString()}</td>
                             <td className="px-4 py-2 text-sm text-gray-900">{formatCurrency(item.rate)}</td>
                             <td className="px-4 py-2 text-sm text-gray-900">{item.lot_no || '-'}</td>
                             <td className="px-4 py-2 text-sm text-gray-900">

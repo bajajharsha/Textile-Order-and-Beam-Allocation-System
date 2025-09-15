@@ -154,7 +154,8 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
                 <th>Cut (Quality)</th>
                 <th>Design Numbers</th>
                 <th>Rate (per pc)</th>
-                <th>Units (pieces)</th>
+                <th>Sets</th>
+                <th>Pick</th>
                 <th>Ground Color</th>
                 <th>Beam Color</th>
                 <th>Actions</th>
@@ -163,14 +164,14 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-8">
+                  <td colSpan={10} className="text-center py-8">
                     <div className="loading"></div>
                     <span className="ml-2">Loading orders...</span>
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-gray-500">
+                  <td colSpan={10} className="text-center py-8 text-gray-500">
                     No orders found
                   </td>
                 </tr>
@@ -193,7 +194,10 @@ const OrderTable: React.FC<OrderTableProps> = ({ onEditOrder, onViewOrder, refre
                       <div>₹{(order.rate_per_piece || 0).toFixed(2)}</div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-medium">{order.units || 'N/A'}</div>
+                      <div className="font-medium">{order.sets || 'N/A'}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-medium">{order.pick || 'N/A'}</div>
                     </td>
                     <td className="py-3 px-4">
                       <div>{formatGroundColors(order.ground_colors)}</div>

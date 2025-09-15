@@ -28,7 +28,8 @@ class OrderRepository:
             "order_number": order_number,
             "party_id": order_data["party_id"],
             "quality_id": order_data["quality_id"],
-            "units": order_data["units"],
+            "sets": order_data["sets"],
+            "pick": order_data["pick"],
             "order_date": str(date.today()),
             "rate_per_piece": float(order_data["rate_per_piece"]),
             "total_designs": len(order_data["design_numbers"]),
@@ -283,7 +284,7 @@ class OrderRepository:
                 beam_color_id = item["beam_color_id"]
                 count = beam_color_counts[beam_color_id]
                 calculated_pieces = (
-                    order_data["units"] * order_data["total_designs"] * count
+                    order_data["sets"] * order_data["total_designs"] * count
                 )
 
                 order_items.append(
@@ -467,9 +468,7 @@ class OrderRepository:
         for item in items_result.data:
             beam_color_id = item["beam_color_id"]
             count = beam_color_counts[beam_color_id]
-            calculated_pieces = (
-                order_data["units"] * order_data["total_designs"] * count
-            )
+            calculated_pieces = order_data["sets"] * order_data["total_designs"] * count
 
             order_items.append(
                 {
@@ -504,7 +503,14 @@ class OrderRepository:
 
         # Update main order
         main_update_data = {}
-        for key in ["party_id", "quality_id", "rate_per_piece", "notes"]:
+        for key in [
+            "party_id",
+            "quality_id",
+            "sets",
+            "pick",
+            "rate_per_piece",
+            "notes",
+        ]:
             if key in update_data:
                 if key == "rate_per_piece":
                     main_update_data[key] = float(update_data[key])
@@ -629,7 +635,7 @@ class OrderRepository:
         # Get order details
         order_result = (
             client.table("orders")
-            .select("units, total_designs")
+            .select("sets, total_designs")
             .eq("id", order_id)
             .execute()
         )
@@ -666,7 +672,7 @@ class OrderRepository:
             # For each design number, create a status entry
             for design_number in design_numbers:
                 # Calculate total pieces for this specific design/color combination
-                total_pieces = order["units"]  # Units per design per color
+                total_pieces = order["sets"]  # Sets per design per color
 
                 status_data = {
                     "order_id": order_id,
@@ -819,11 +825,11 @@ class OrderRepository:
         return color_summary
 
     async def _calculate_total_pieces(self, order_id: int, client) -> int:
-        """Calculate total pieces using new formula: Units × Total Designs × Beam Color Count"""
+        """Calculate total pieces using new formula: Sets × Total Designs × Beam Color Count"""
         # Get order details
         order_result = (
             client.table("orders")
-            .select("units, total_designs")
+            .select("sets, total_designs")
             .eq("id", order_id)
             .execute()
         )
@@ -832,7 +838,7 @@ class OrderRepository:
             return 0
 
         order_data = order_result.data[0]
-        units = order_data["units"]
+        sets = order_data["sets"]
         total_designs = order_data["total_designs"]
 
         # Get beam color counts
@@ -852,8 +858,8 @@ class OrderRepository:
                 beam_color_counts.get(beam_color_id, 0) + 1
             )
 
-        # Calculate total pieces: Units × Total Designs × Sum of all beam color counts
+        # Calculate total pieces: Sets × Total Designs × Sum of all beam color counts
         total_beam_color_count = sum(beam_color_counts.values())
-        total_pieces = units * total_designs * total_beam_color_count
+        total_pieces = sets * total_designs * total_beam_color_count
 
         return total_pieces

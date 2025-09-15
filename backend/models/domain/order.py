@@ -16,7 +16,8 @@ class Order:
         order_number: str = "",
         party_id: int = 0,
         quality_id: int = 0,
-        units: int = 0,
+        sets: int = 0,
+        pick: int = 0,
         order_date: Optional[Union[str, date]] = None,
         rate_per_piece: Union[Decimal, float] = 0.0,
         total_designs: int = 0,
@@ -31,7 +32,8 @@ class Order:
         self.order_number = order_number
         self.party_id = party_id
         self.quality_id = quality_id
-        self.units = units
+        self.sets = sets
+        self.pick = pick
         self.order_date = order_date
         self.rate_per_piece = (
             Decimal(str(rate_per_piece)) if rate_per_piece else Decimal("0.0")
@@ -51,7 +53,8 @@ class Order:
             "order_number": self.order_number,
             "party_id": self.party_id,
             "quality_id": self.quality_id,
-            "units": self.units,
+            "sets": self.sets,
+            "pick": self.pick,
             "order_date": self.order_date,
             "rate_per_piece": float(self.rate_per_piece),
             "total_designs": self.total_designs,
@@ -71,7 +74,8 @@ class Order:
             order_number=data.get("order_number", ""),
             party_id=data.get("party_id", 0),
             quality_id=data.get("quality_id", 0),
-            units=data.get("units", 0),
+            sets=data.get("sets", 0),
+            pick=data.get("pick", 0),
             order_date=data.get("order_date"),
             rate_per_piece=data.get("rate_per_piece", 0.0),
             total_designs=data.get("total_designs", 0),

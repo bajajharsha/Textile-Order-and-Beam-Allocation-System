@@ -77,7 +77,7 @@ Order Created → Order Items Created → Order Item Status Initialized
 ```
 
 **Example:**
-- Order: 10 units, 2 designs (D001, D002), 3 ground colors (aa, a, aaa)
+- Order: 10 sets, 2 designs (D001, D002), 3 ground colors (aa, a, aaa)
 - Creates 6 status entries (2 designs × 3 colors)
 - Each status entry: total_pieces = 10, allocated_pieces = 0, remaining_pieces = 10
 
@@ -125,14 +125,14 @@ Lot Allocation → Triggers → Update order_item_status → Recalculate remaini
 
 **Data Structure:**
 ```
-Date | Des No. | Quality | Units (pcs) | Rate | Lot no. | Lot Date | Bill no. | Actual pcs | Delivery Date
+Date | Des No. | Quality | Sets (pcs) | Rate | Lot no. | Lot Date | Bill no. | Actual pcs | Delivery Date
 ```
 
 **Data Sources:**
 - **Date:** Order date from orders table
 - **Des No.:** Design number from order_item_status
 - **Quality:** Quality name from qualities table
-- **Units (pcs):** remaining_pieces from order_item_status
+- **Sets (pcs):** remaining_pieces from order_item_status
 - **Rate:** rate_per_piece from orders table
 - **Lot no.:** lot_number from lot_register (if allocated)
 - **Lot Date:** lot_date from lot_register
@@ -196,7 +196,7 @@ POST   /lots/allocation/initialize/{order_id} # Initialize order status
 **Initial Order:**
 - Party: Sheetal Creation
 - Quality: 4 feeder 60/700
-- Units: 10 per design per color
+- Sets: 10 per design per color
 - Designs: D001, D002
 - Colors: aa (Yellow), a (White), aaa (Yellow)
 - Total: 60 pieces
@@ -238,7 +238,7 @@ GET /lots/reports/partywise-detail?party_id=5
           "date": "2025-09-11",
           "des_no": "D001", 
           "quality": "4 feeder 60/700",
-          "units_pcs": 0,
+          "sets_pcs": 0,
           "rate": 100.00,
           "lot_no": "L001",
           "lot_no_date": "2025-09-11",
@@ -250,7 +250,7 @@ GET /lots/reports/partywise-detail?party_id=5
           "date": "2025-09-11",
           "des_no": "D002",
           "quality": "4 feeder 60/700", 
-          "units_pcs": 10,
+          "sets_pcs": 10,
           "rate": 100.00,
           "lot_no": null,
           "lot_no_date": null,

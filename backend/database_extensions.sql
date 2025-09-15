@@ -74,7 +74,7 @@ SELECT
     o.order_date as date,
     ois.design_number as des_no,
     q.quality_name as quality,
-    ois.remaining_pieces as units_pcs,
+    ois.remaining_pieces as sets_pcs,
     o.rate_per_piece as rate,
     la.lot_id,
     lr.lot_number as lot_no,

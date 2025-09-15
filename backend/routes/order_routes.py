@@ -16,7 +16,7 @@ router = APIRouter()
 class BeamPreviewRequest(BaseModel):
     """Schema for beam calculation preview"""
 
-    units: int
+    sets: int
     ground_colors: List[dict]
     design_numbers: List[str]
 
@@ -93,7 +93,7 @@ async def calculate_beam_preview(
 ):
     """Calculate beam summary preview before saving order"""
     return await order_controller.calculate_beam_preview(
-        preview_data.units,
+        preview_data.sets,
         preview_data.ground_colors,
         preview_data.design_numbers,
     )

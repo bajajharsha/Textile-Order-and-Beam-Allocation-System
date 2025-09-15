@@ -113,12 +113,12 @@ class LotUseCase:
 
                 party_groups[party_name]["items"].append(item)
                 party_groups[party_name]["total_remaining_pieces"] += item.get(
-                    "units_pcs", 0
+                    "sets_pcs", 0
                 )
 
                 # Calculate total value
                 rate = float(item.get("rate", 0))
-                pieces = item.get("units_pcs", 0)
+                pieces = item.get("sets_pcs", 0)
                 party_groups[party_name]["total_value"] += rate * pieces
 
             # Convert to list

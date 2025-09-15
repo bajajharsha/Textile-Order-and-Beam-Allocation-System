@@ -93,7 +93,7 @@ const PartywiseDetailTable: React.FC<PartywiseDetailTableProps> = ({ refreshTrig
               <th>Date</th>
               <th>Des No.</th>
               <th>Quality</th>
-              <th>Units (pcs)</th>
+              <th>Sets (pcs)</th>
               <th>Rate</th>
               <th>Lot No.</th>
               <th>Lot No. Date</th>
@@ -123,7 +123,7 @@ const PartywiseDetailTable: React.FC<PartywiseDetailTableProps> = ({ refreshTrig
                     <td>{formatDate(item.date)}</td>
                     <td>{item.des_no}</td>
                     <td>{item.quality}</td>
-                    <td>{item.units_pcs}</td>
+                    <td>{item.sets_pcs}</td>
                     <td>{formatCurrency(item.rate)}</td>
                     <td>{item.lot_no || '-'}</td>
                     <td>{item.lot_no_date ? formatDate(item.lot_no_date) : '-'}</td>

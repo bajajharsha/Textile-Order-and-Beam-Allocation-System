@@ -257,7 +257,7 @@ const BeamAllocationTable: React.FC<BeamAllocationTableProps> = ({
               <div className="text-sm">
                 <div className="font-medium text-primary mb-1">Calculation Formula:</div>
                 <div className="text-secondary">
-                  (No.of Units/pcs) × (no of designs on respective beam) × (no of designs)
+                  (No.of Sets/pcs) × (no of designs on respective beam) × (no of designs)
                 </div>
               </div>
             </div>
