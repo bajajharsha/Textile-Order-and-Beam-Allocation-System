@@ -437,6 +437,14 @@ export const lotApi = {
     api.post<{ success: boolean; message: string }>('/lots/create-from-register', data),
 
   // Create lot for specific design (new - creates individual lot per design)
+  createLotFromDesign: (data: {
+    order_id: number;
+    lot_number: string;
+    lot_date: string;
+    design_number: string;
+    pieces_allocated: number;
+  }) =>
+    api.post<{ success: boolean; message: string }>('/lots/create-from-design', data),
   createLotForDesign: (data: {
     order_id: number;
     design_number: string;

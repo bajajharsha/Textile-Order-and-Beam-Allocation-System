@@ -2,6 +2,7 @@
 Lot Repository - Database operations for lot management
 """
 
+import logging
 from typing import List, Optional
 
 from config.database import database, get_ist_timestamp
@@ -13,6 +14,7 @@ class LotRepository:
 
     def __init__(self):
         self.db_client = database
+        self.logger = logging.getLogger(__name__)
 
     async def create_lot(self, lot_data: dict, allocations: List[dict]) -> LotRegister:
         """Create new lot with allocations"""
@@ -971,3 +973,145 @@ class LotRepository:
             .execute()
         )
         return result.count or 0
+
+    async def create_lot_from_design(
+        self,
+        order_id: int,
+        lot_number: str,
+        lot_date: str,
+        design_number: str,
+        pieces_allocated: int,
+    ) -> dict:
+        """Create a lot from design selection form with piece reduction logic"""
+        client = await self.db_client.get_client()
+
+        try:
+            # Get order details to calculate pieces
+            order_result = (
+                client.table("orders").select("*").eq("id", order_id).execute()
+            )
+            if not order_result.data:
+                raise ValueError(f"Order {order_id} not found")
+
+            order = order_result.data[0]
+
+            # Get order item status for the specific design
+            status_result = (
+                client.table("order_item_status")
+                .select("*")
+                .eq("order_id", order_id)
+                .eq("design_number", design_number)
+                .execute()
+            )
+            if not status_result.data:
+                raise ValueError(
+                    f"Design {design_number} not found in order {order_id}"
+                )
+
+            # Validate that we have enough remaining pieces
+            total_remaining = sum(
+                item.get("remaining_pieces", item["total_pieces"])
+                for item in status_result.data
+            )
+            if pieces_allocated > total_remaining:
+                raise ValueError(
+                    f"Cannot allocate {pieces_allocated} pieces. Only {total_remaining} pieces remaining for design {design_number}"
+                )
+
+            # Create lot allocations - distribute pieces across beam colors proportionally
+            lot_allocations = []
+            for item in status_result.data:
+                beam_color_id = item["beam_color_id"]
+                current_remaining = item.get("remaining_pieces", item["total_pieces"])
+
+                # Calculate proportional allocation for this beam color
+                proportion = (
+                    current_remaining / total_remaining if total_remaining > 0 else 0
+                )
+                allocated_for_color = int(pieces_allocated * proportion)
+
+                # Ensure we don't allocate more than remaining
+                allocated_for_color = min(allocated_for_color, current_remaining)
+
+                if allocated_for_color > 0:
+                    lot_allocations.append(
+                        {"beam_color_id": beam_color_id, "pieces": allocated_for_color}
+                    )
+
+            # Create lot in lot_register
+            lot_data = {
+                "lot_number": lot_number,
+                "lot_date": lot_date,
+                "party_id": order["party_id"],
+                "quality_id": order["quality_id"],
+                "total_pieces": sum(
+                    allocation["pieces"] for allocation in lot_allocations
+                ),
+                "created_at": get_ist_timestamp(),
+                "updated_at": get_ist_timestamp(),
+            }
+
+            lot_result = client.table("lot_register").insert(lot_data).execute()
+            lot_id = lot_result.data[0]["id"]
+
+            # Create lot allocations
+            for allocation in lot_allocations:
+                allocation_data = {
+                    "lot_id": lot_id,
+                    "order_id": order_id,
+                    "design_number": design_number,
+                    "ground_color_name": status_result.data[0][
+                        "ground_color_name"
+                    ],  # Get from first status item
+                    "beam_color_id": allocation["beam_color_id"],
+                    "allocated_pieces": allocation["pieces"],
+                    "created_at": get_ist_timestamp(),
+                    "updated_at": get_ist_timestamp(),
+                }
+                client.table("lot_allocations").insert(allocation_data).execute()
+
+            # Update order item status to reduce remaining pieces
+            # This is where the piece reduction logic happens
+            for allocation in lot_allocations:
+                # Find the corresponding status item
+                status_item = next(
+                    (
+                        item
+                        for item in status_result.data
+                        if item["beam_color_id"] == allocation["beam_color_id"]
+                    ),
+                    None,
+                )
+
+                if status_item:
+                    current_remaining = status_item.get(
+                        "remaining_pieces", status_item["total_pieces"]
+                    )
+                    pieces_to_reduce = allocation["pieces"]
+
+                    # Update the remaining_pieces field to reflect the reduction
+                    new_remaining = current_remaining - pieces_to_reduce
+                    update_data = {
+                        "remaining_pieces": new_remaining,
+                        "allocated_pieces": status_item.get("allocated_pieces", 0)
+                        + pieces_to_reduce,
+                        "updated_at": get_ist_timestamp(),
+                    }
+
+                    client.table("order_item_status").update(update_data).eq(
+                        "id", status_item["id"]
+                    ).execute()
+
+            return {
+                "lot_id": lot_id,
+                "lot_number": lot_number,
+                "lot_date": lot_date,
+                "order_id": order_id,
+                "design_number": design_number,
+                "pieces_allocated": pieces_allocated,
+                "allocations": lot_allocations,
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error creating lot from design: {str(e)}")
+            raise

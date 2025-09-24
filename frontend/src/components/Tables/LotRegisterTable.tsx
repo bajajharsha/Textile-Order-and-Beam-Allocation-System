@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { lotApi, LotRegisterItem } from '../../services/api';
+import LotCreationForm from '../Forms/LotCreationForm';
 
 interface LotRegisterTableProps {
   refreshTrigger?: number;
@@ -19,8 +20,10 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
   const [editingCell, setEditingCell] = useState<{ partyName: string; rowIndex: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [expandedParties, setExpandedParties] = useState<Set<string>>(new Set());
+  const [showLotForm, setShowLotForm] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -48,11 +51,25 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
     } finally {
       setLoading(false);
     }
-  };
+  }, [lotRegisterType]);
 
   useEffect(() => {
     fetchData();
-  }, [refreshTrigger, lotRegisterType]);
+  }, [refreshTrigger, fetchData]);
+
+  const handleCreateLot = (order: any) => {
+    setSelectedOrder(order);
+    setShowLotForm(true);
+  };
+
+  const handleLotCreated = () => {
+    setShowLotForm(false);
+    setSelectedOrder(null);
+    fetchData();
+    if (onLotUpdated) {
+      onLotUpdated();
+    }
+  };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
@@ -275,12 +292,23 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
                     ({items.length} designs)
                   </span>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-600">
-                    Total Pieces: {items.reduce((sum, item) => sum + item.total_pieces, 0).toLocaleString()}
-                  </div>
-                  <div className="text-sm font-medium text-gray-800">
-                    Lots: {new Set(items.map(item => item.lot_id).filter(id => id)).size}
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCreateLot(items[0]); // Use first item to get order info
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    Create New Lot
+                  </button>
+                  <div className="text-right">
+                    <div className="text-sm text-gray-600">
+                      Total Pieces: {items.reduce((sum, item) => sum + item.total_pieces, 0).toLocaleString()}
+                    </div>
+                    <div className="text-sm font-medium text-gray-800">
+                      Lots: {new Set(items.map(item => item.lot_id).filter(id => id)).size}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -323,7 +351,27 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
         ))}
       </div>
 
-
+      {/* Lot Creation Form Modal */}
+      {showLotForm && selectedOrder && (
+        <LotCreationForm
+          orderId={selectedOrder.order_id}
+          orderNumber={selectedOrder.order_number}
+          partyName={selectedOrder.party_name}
+          qualityName={selectedOrder.quality}
+                 designs={[
+                   {
+                     design_number: selectedOrder.design_no,
+                     remaining_pieces: selectedOrder.remaining_pieces || selectedOrder.total_pieces,
+                     original_pieces: selectedOrder.total_pieces
+                   }
+                 ]}
+          onLotCreated={handleLotCreated}
+          onCancel={() => {
+            setShowLotForm(false);
+            setSelectedOrder(null);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -149,3 +149,12 @@ async def create_lot_for_design(
 ):
     """Create a lot for a specific design when lot number is entered in the register"""
     return await lot_controller.create_lot_for_design(lot_data)
+
+
+@router.post("/create-from-design")
+async def create_lot_from_design(
+    lot_data: dict,
+    lot_controller: LotController = Depends(LotController),
+):
+    """Create a lot from design selection form"""
+    return await lot_controller.create_lot_from_design(lot_data)

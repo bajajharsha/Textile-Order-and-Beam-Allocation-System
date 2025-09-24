@@ -398,3 +398,29 @@ class LotService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create lot for design",
             )
+
+    async def create_lot_from_design(self, lot_data: dict) -> Dict:
+        """Create a lot from design selection form with piece reduction logic"""
+        try:
+            self.logger.debug(f"Creating lot from design form: {lot_data}")
+
+            created_lot = await self.lot_usecase.create_lot_from_design(
+                lot_data["order_id"],
+                lot_data["lot_number"],
+                lot_data["lot_date"],
+                lot_data["design_number"],
+                lot_data["pieces_allocated"],
+            )
+
+            return {
+                "success": True,
+                "message": f"Lot {lot_data['lot_number']} created successfully for design {lot_data['design_number']}",
+                "lot": created_lot,
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error creating lot from design: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create lot from design",
+            )

@@ -361,3 +361,24 @@ class LotUseCase:
         except Exception as e:
             self.logger.error(f"Error creating lot for design: {str(e)}")
             raise
+
+    async def create_lot_from_design(
+        self,
+        order_id: int,
+        lot_number: str,
+        lot_date: str,
+        design_number: str,
+        pieces_allocated: int,
+    ) -> dict:
+        """Create a lot from design selection form with piece reduction logic"""
+        try:
+            created_lot = await self.lot_repository.create_lot_from_design(
+                order_id, lot_number, lot_date, design_number, pieces_allocated
+            )
+            self.logger.info(
+                f"Created lot {lot_number} for design {design_number} with {pieces_allocated} pieces from order {order_id}"
+            )
+            return created_lot
+        except Exception as e:
+            self.logger.error(f"Error creating lot from design: {str(e)}")
+            raise
