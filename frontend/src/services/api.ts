@@ -208,6 +208,8 @@ export interface LotRegisterItem {
   design_no: string;
   quality: string;
   total_pieces: number;
+  sets?: number;  // Original sets value
+  ground_colors_count?: number;  // Number of ground colors for calculation
   bill_no?: string;
   actual_pieces?: number;
   delivery_date?: string;

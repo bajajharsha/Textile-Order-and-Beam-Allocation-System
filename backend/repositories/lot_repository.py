@@ -40,6 +40,10 @@ class LotRepository:
             "updated_at": get_ist_timestamp(),
         }
 
+        # Add lot_number if provided (manual entry), otherwise let DB trigger generate it
+        if lot_data.get("lot_number"):
+            lot_insert_data["lot_number"] = lot_data["lot_number"]
+
         # Create lot
         lot_result = client.table("lot_register").insert(lot_insert_data).execute()
         lot = LotRegister.from_dict(lot_result.data[0])
@@ -416,12 +420,12 @@ class LotRepository:
     async def get_lot_register(
         self, limit: int = 50, offset: int = 0, lot_register_type: Optional[str] = None
     ) -> List[dict]:
-        """Get lot register data - shows all orders with each design as separate row, grouped by party"""
+        """Get lot register data - shows ONLY created lots with allocated sets per design"""
         client = await self.db_client.get_client()
 
-        # Get orders with party and quality details (same as partywise detail)
-        orders_query = (
-            client.table("orders")
+        # Get lots with party and quality details
+        lots_query = (
+            client.table("lot_register")
             .select("""
                 *,
                 parties!inner(id, party_name),
@@ -430,18 +434,40 @@ class LotRepository:
             .eq("is_active", True)
         )
 
-        # Filter by lot register type if provided
-        if lot_register_type:
-            print(f"Filtering orders by lot_register_type: {lot_register_type}")
-            orders_query = orders_query.eq("lot_register_type", lot_register_type)
+        lots_result = lots_query.order("lot_date", desc=True).execute()
 
-        orders_result = orders_query.order("order_date", desc=True).execute()
-
-        if not orders_result.data:
+        if not lots_result.data:
             return []
 
-        # Get order items for all orders
-        order_ids = [order["id"] for order in orders_result.data]
+        # Get lot_design_allocations for all lots
+        lot_ids = [lot["id"] for lot in lots_result.data]
+
+        try:
+            lot_design_allocations = (
+                client.table("lot_design_allocations")
+                .select("*")
+                .in_("lot_id", lot_ids)
+                .eq("is_active", True)
+                .execute()
+            )
+        except Exception as e:
+            # Table might not exist yet or be empty
+            self.logger.warning(f"Could not fetch lot_design_allocations: {str(e)}")
+            return []
+
+        if not lot_design_allocations.data:
+            # No allocations yet
+            return []
+
+        # Get order IDs to fetch order items for ground colors
+        order_ids = list(
+            set([alloc["order_id"] for alloc in lot_design_allocations.data])
+        )
+
+        if not order_ids:
+            return []
+
+        # Get order items for ground colors
         items_result = (
             client.table("order_items")
             .select("*")
@@ -450,127 +476,98 @@ class LotRepository:
             .execute()
         )
 
-        # Group items by order
-        items_by_order = {}
+        # Group items by order and design
+        items_by_order_design = {}
         for item in items_result.data:
             order_id = item["order_id"]
-            if order_id not in items_by_order:
-                items_by_order[order_id] = []
-            items_by_order[order_id].append(item)
+            # Handle comma-separated designs
+            design_numbers = []
+            if "," in item["design_number"]:
+                design_numbers = [d.strip() for d in item["design_number"].split(",")]
+            else:
+                design_numbers = [item["design_number"]]
 
-        # Get existing lot data for these orders (if any lots exist)
-        existing_lots_result = (
-            client.table("lot_register")
-            .select("""
-                *,
-                parties!inner(id, party_name),
-                qualities!inner(id, quality_name)
-            """)
-            .eq("is_active", True)
-            .execute()
-        )
+            for design in design_numbers:
+                key = (order_id, design)
+                if key not in items_by_order_design:
+                    items_by_order_design[key] = []
+                items_by_order_design[key].append(item)
 
-        # Get lot allocations
-        lot_allocations_result = (
-            client.table("lot_allocations").select("*").eq("is_active", True).execute()
-        )
+        # Get orders for lot_register_type filtering
+        if lot_register_type:
+            orders_result = (
+                client.table("orders")
+                .select("id, lot_register_type")
+                .in_("id", order_ids)
+                .eq("lot_register_type", lot_register_type)
+                .execute()
+            )
+            filtered_order_ids = set([o["id"] for o in orders_result.data])
+        else:
+            filtered_order_ids = set(order_ids)
 
-        # Create a map of order_id -> lot data for quick lookup
-        order_to_lot_map = {}
-        for allocation in lot_allocations_result.data:
-            order_id = allocation["order_id"]
-            if order_id not in order_to_lot_map:
-                order_to_lot_map[order_id] = []
-            order_to_lot_map[order_id].append(allocation)
-
-        # Build lot register data - each design gets its own row
+        # Build lot register data - one row per lot-design allocation
         lot_register_data = []
-        for order in orders_result.data:
-            order_id = order["id"]
-            order_items = items_by_order.get(order_id, [])
-            existing_allocations = order_to_lot_map.get(order_id, [])
+        for lot_alloc in lot_design_allocations.data:
+            # Filter by lot_register_type if specified
+            if lot_alloc["order_id"] not in filtered_order_ids:
+                continue
 
-            # Get all unique design numbers for this order
-            all_design_numbers = set()
-            for item in order_items:
-                if item["design_number"]:
-                    if item["design_number"] == "ALL":
-                        # For "ALL", generate design numbers based on total_designs
-                        design_numbers = [
-                            f"D{i + 1:03d}"
-                            for i in range(order.get("total_designs", 1))
-                        ]
-                    else:
-                        # Split comma-separated design numbers
-                        design_numbers = [
-                            d.strip()
-                            for d in item["design_number"].split(",")
-                            if d.strip()
-                        ]
-                    all_design_numbers.update(design_numbers)
+            lot_id = lot_alloc["lot_id"]
+            order_id = lot_alloc["order_id"]
+            design_no = lot_alloc["design_number"]
+            allocated_sets = lot_alloc["allocated_sets"]
 
-            # Create a row for each unique design number
-            for design_no in sorted(all_design_numbers):
-                # Find lot data specifically for this design
-                lot_data = None
-                allocation_id = None
+            # Find the lot data
+            lot_data = next(
+                (lot for lot in lots_result.data if lot["id"] == lot_id), None
+            )
 
-                for allocation in existing_allocations:
-                    if allocation["design_number"] == design_no:
-                        # Find the lot for this specific design allocation
-                        for lot in existing_lots_result.data:
-                            if lot["id"] == allocation["lot_id"]:
-                                lot_data = lot
-                                allocation_id = allocation["id"]
-                                break
-                        break
+            if not lot_data:
+                continue
 
-                # Get ground color names for this design (comma-separated)
-                ground_colors = []
-                for item in order_items:
-                    item_designs = []
-                    if item["design_number"] == "ALL":
-                        item_designs = [
-                            f"D{i + 1:03d}"
-                            for i in range(order.get("total_designs", 1))
-                        ]
-                    else:
-                        item_designs = [
-                            d.strip()
-                            for d in item["design_number"].split(",")
-                            if d.strip()
-                        ]
-
-                    if design_no in item_designs:
-                        ground_colors.append(item["ground_color_name"])
+            # Get ground colors for this design
+            key = (order_id, design_no)
+            ground_colors = []
+            if key in items_by_order_design:
+                ground_colors = [
+                    item["ground_color_name"] for item in items_by_order_design[key]
+                ]
 
                 ground_color_str = ", ".join(ground_colors)
+            ground_colors_count = len(ground_colors)
 
-                lot_register_data.append(
-                    {
-                        "lot_date": lot_data["lot_date"] if lot_data else None,
-                        "lot_no": lot_data["lot_number"] if lot_data else None,
-                        "party_name": order["parties"]["party_name"],
-                        "design_no": design_no,
-                        "quality": order["qualities"]["quality_name"],
-                        "total_pieces": order["sets"],  # Total sets for this design
-                        "bill_no": lot_data["bill_number"] if lot_data else None,
-                        "actual_pieces": lot_data["actual_pieces"]
-                        if lot_data
-                        else None,
-                        "delivery_date": lot_data["delivery_date"]
-                        if lot_data
-                        else None,
-                        "status": lot_data["status"] if lot_data else "PENDING",
-                        "lot_id": lot_data["id"] if lot_data else None,
-                        "allocation_id": allocation_id,
-                        "ground_color_name": ground_color_str,
-                        "order_id": order_id,
-                        "order_item_id": None,  # Not applicable for combined rows
-                        "party_id": order["party_id"],
-                        "quality_id": order["quality_id"],
-                    }
-                )
+            # Calculate total pieces: allocated_sets × ground_colors_count
+            total_pieces_calculated = (
+                allocated_sets * ground_colors_count
+                if ground_colors_count > 0
+                else allocated_sets
+            )
+
+            lot_register_data.append(
+                {
+                    "lot_date": lot_data["lot_date"],
+                    "lot_no": lot_data["lot_number"],
+                    "party_name": lot_data["parties"]["party_name"],
+                    "design_no": design_no,
+                    "quality": lot_data["qualities"]["quality_name"],
+                    "total_pieces": total_pieces_calculated,  # allocated_sets × ground_colors
+                    "sets": allocated_sets,  # Store allocated sets for display
+                    "ground_colors_count": ground_colors_count,
+                    "bill_no": lot_data["bill_number"],
+                    "actual_pieces": lot_data["actual_pieces"],
+                    "delivery_date": lot_data["delivery_date"],
+                    "status": lot_data["status"],
+                    "lot_id": lot_data["id"],
+                    "allocation_id": lot_alloc["id"],
+                    "ground_color_name": ground_color_str,
+                    "order_id": order_id,
+                    "order_item_id": None,
+                    "party_id": lot_data["party_id"],
+                    "quality_id": lot_data["quality_id"],
+                }
+            )
+
         return lot_register_data
 
     async def update_lot_field(self, lot_id: int, field: str, value: str) -> bool:

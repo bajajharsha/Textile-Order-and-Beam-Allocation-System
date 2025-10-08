@@ -4,6 +4,7 @@ Lot Controller - API request handlers
 
 from typing import Dict, List, Optional
 
+from models.schemas.design import LotCreateFromSets
 from models.schemas.lot import (
     LotCreate,
     LotRegisterResponse,
@@ -23,6 +24,10 @@ class LotController:
     async def create_lot(self, lot_data: LotCreate) -> LotResponse:
         """Handle create lot request"""
         return await self.lot_service.create_lot(lot_data)
+
+    async def create_lot_from_sets(self, lot_data: LotCreateFromSets) -> Dict:
+        """Handle create lot from sets request (NEW METHOD)"""
+        return await self.lot_service.create_lot_from_sets(lot_data)
 
     async def get_lot(self, lot_id: int) -> LotResponse:
         """Handle get lot request"""

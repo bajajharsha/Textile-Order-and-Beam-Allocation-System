@@ -11,6 +11,7 @@ from fastapi import HTTPException, status
 from models.order import OrderCreate, OrderResponse
 from repositories.order_repository import OrderRepository
 from services.calculation_service import CalculationService
+from services.design_service import DesignService
 
 
 class OrderService:
@@ -19,6 +20,7 @@ class OrderService:
     def __init__(self):
         self.order_repo = OrderRepository()
         self.calc_service = CalculationService()
+        self.design_service = DesignService()
         self.logger = get_logger("services.order")
 
     def _generate_order_number(self) -> str:
@@ -69,6 +71,9 @@ class OrderService:
             self.logger.info(
                 f"Successfully created order {order_number} with ID: {created_order['id']}"
             )
+
+            # NEW: Initialize design tracking for set-based allocation
+            await self._initialize_design_tracking(created_order, order_data)
 
             # Convert to response model
             return await self._convert_to_response(created_order)
@@ -182,3 +187,60 @@ class OrderService:
         except Exception as e:
             self.logger.error(f"Error converting order to response: {str(e)}")
             raise
+
+    async def _initialize_design_tracking(
+        self, created_order: Dict, order_data: OrderCreate
+    ) -> None:
+        """Initialize design tracking tables for set-based allocation"""
+        try:
+            order_id = created_order["id"]
+            sets = order_data.sets
+
+            # Get unique design numbers from order items
+            design_numbers = set()
+            design_beam_map = {}  # design_number -> list of (beam_color_id, count)
+
+            for item in order_data.order_items:
+                design_numbers.add(item.design_number)
+
+                # Track beam colors per design
+                if item.design_number not in design_beam_map:
+                    design_beam_map[item.design_number] = {}
+
+                # Count beam color occurrences (this becomes beam_multiplier)
+                beam_id = item.beam_color_id
+                if beam_id in design_beam_map[item.design_number]:
+                    design_beam_map[item.design_number][beam_id] += 1
+                else:
+                    design_beam_map[item.design_number][beam_id] = 1
+
+            # Create design tracking and beam config for each design
+            for design_number in design_numbers:
+                # Create design set tracking
+                await self.design_service.create_design_tracking(
+                    order_id=order_id, design_number=design_number, total_sets=sets
+                )
+
+                # Create beam configurations for this design
+                if design_number in design_beam_map:
+                    for beam_color_id, multiplier in design_beam_map[
+                        design_number
+                    ].items():
+                        await self.design_service.create_beam_config(
+                            order_id=order_id,
+                            design_number=design_number,
+                            beam_color_id=beam_color_id,
+                            beam_multiplier=multiplier,
+                        )
+
+            self.logger.info(
+                f"Initialized design tracking for order {order_id}: "
+                f"{len(design_numbers)} designs, {sets} sets each"
+            )
+
+        except Exception as e:
+            # Log but don't fail order creation
+            self.logger.warning(
+                f"Failed to initialize design tracking for order {order_id}: {str(e)}"
+            )
+            # Not raising exception to avoid breaking existing order creation flow

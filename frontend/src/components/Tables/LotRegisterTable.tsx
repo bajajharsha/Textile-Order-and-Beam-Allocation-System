@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { lotApi, LotRegisterItem } from '../../services/api';
 import LotCreationForm from '../Forms/LotCreationForm';
+import SetBasedLotCreationForm from '../Forms/SetBasedLotCreationForm';
 
 interface LotRegisterTableProps {
   refreshTrigger?: number;
@@ -21,6 +22,7 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
   const [editValue, setEditValue] = useState<string>('');
   const [expandedParties, setExpandedParties] = useState<Set<string>>(new Set());
   const [showLotForm, setShowLotForm] = useState(false);
+  const [showSetBasedLotForm, setShowSetBasedLotForm] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const fetchData = useCallback(async () => {
@@ -251,6 +253,13 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
           <button onClick={fetchData} className="btn btn-secondary">
             Refresh
           </button>
+          <button 
+            onClick={() => setShowSetBasedLotForm(true)} 
+            className="btn btn-primary"
+            style={{ marginLeft: '8px' }}
+          >
+            + Create Lot
+          </button>
         </div>
       </div>
 
@@ -324,7 +333,10 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lot No.</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Design No.</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quality</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Pieces</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                        Total Pieces<br/>
+                        <span className="text-xs font-normal text-gray-400">(Sets × GCs)</span>
+                      </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bill No.</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actual Pieces</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Delivery Date</th>
@@ -337,7 +349,14 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
                         <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'lot_no')}</td>
                         <td className="px-4 py-2 text-sm text-gray-900">{item.design_no}</td>
                         <td className="px-4 py-2 text-sm text-gray-900">{item.quality}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{item.total_pieces.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{item.total_pieces.toLocaleString()}</span>
+                            {item.sets && item.ground_colors_count && (
+                              <span className="text-xs text-gray-500">({item.sets} × {item.ground_colors_count})</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'bill_no')}</td>
                         <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'actual_pieces')}</td>
                         <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'delivery_date')}</td>
@@ -351,7 +370,7 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
         ))}
       </div>
 
-      {/* Lot Creation Form Modal */}
+      {/* Lot Creation Form Modal (Old System) */}
       {showLotForm && selectedOrder && (
         <LotCreationForm
           orderId={selectedOrder.order_id}
@@ -371,6 +390,24 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
             setSelectedOrder(null);
           }}
         />
+      )}
+
+      {/* Set-Based Lot Creation Form Modal (New System) */}
+      {showSetBasedLotForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <SetBasedLotCreationForm
+              onLotCreated={() => {
+                setShowSetBasedLotForm(false);
+                fetchData(); // Refresh lot register
+                if (onLotUpdated) {
+                  onLotUpdated();
+                }
+              }}
+              onCancel={() => setShowSetBasedLotForm(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

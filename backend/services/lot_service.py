@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 
 from config.logging import get_logger
 from fastapi import HTTPException, status
+from models.schemas.design import LotCreateFromSets
 from models.schemas.lot import (
     AllocationSummary,
     BeamSummaryWithAllocation,
@@ -17,6 +18,7 @@ from models.schemas.lot import (
     OrderItemStatusResponse,
     PartywiseDetailResponse,
 )
+from services.design_service import DesignService
 from usecases.lot_usecase import LotUseCase
 
 
@@ -25,6 +27,7 @@ class LotService:
 
     def __init__(self):
         self.lot_usecase = LotUseCase()
+        self.design_service = DesignService()
         self.logger = get_logger("services.lot")
 
     async def create_lot(self, lot_data: LotCreate) -> LotResponse:
@@ -52,6 +55,85 @@ class LotService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create lot",
+            )
+
+    async def create_lot_from_sets(self, lot_data: LotCreateFromSets) -> Dict:
+        """Create lot using set-based allocation (NEW METHOD for design-wise lots)"""
+        try:
+            self.logger.info("Creating lot with set-based allocations")
+
+            # Validate: Check if sufficient sets available for each design
+            for allocation in lot_data.design_allocations:
+                validation = await self.design_service.validate_design_allocation(
+                    allocation.order_id,
+                    allocation.design_number,
+                    allocation.allocated_sets,
+                )
+
+                if not validation["valid"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=validation["error"],
+                    )
+
+            # Create the lot (reuse existing lot creation logic)
+            lot_dict = {
+                "party_id": lot_data.party_id,
+                "quality_id": lot_data.quality_id,
+                "lot_date": lot_data.lot_date,
+                "lot_number": lot_data.lot_number,
+                "bill_number": lot_data.bill_number,
+                "actual_pieces": lot_data.actual_pieces,
+                "delivery_date": lot_data.delivery_date,
+                "notes": lot_data.notes,
+                "allocations": [],  # Will be empty for now, we handle separately
+            }
+
+            # Create lot through existing use case
+            lot = await self.lot_usecase.create_lot(lot_dict)
+            lot_id = lot.get("id")
+
+            # Create lot_design_allocations entries for each design
+            from config.database import database, get_ist_timestamp
+
+            client = await database.get_client()
+
+            for allocation in lot_data.design_allocations:
+                # Create lot_design_allocation entry
+                allocation_data = {
+                    "lot_id": lot_id,
+                    "order_id": allocation.order_id,
+                    "design_number": allocation.design_number,
+                    "allocated_sets": allocation.allocated_sets,
+                    "created_at": get_ist_timestamp(),
+                    "updated_at": get_ist_timestamp(),
+                }
+                client.table("lot_design_allocations").insert(allocation_data).execute()
+
+                # Update design set tracking
+                await self.design_service.allocate_sets(
+                    allocation.order_id,
+                    allocation.design_number,
+                    allocation.allocated_sets,
+                )
+
+            self.logger.info(
+                f"Successfully created lot with {len(lot_data.design_allocations)} design allocations"
+            )
+
+            return {
+                "success": True,
+                "lot": lot,
+                "message": f"Lot created successfully with {len(lot_data.design_allocations)} design allocations",
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            self.logger.error(f"Error creating lot from sets: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to create lot from sets: {str(e)}",
             )
 
     async def get_lot_by_id(self, lot_id: int) -> LotResponse:

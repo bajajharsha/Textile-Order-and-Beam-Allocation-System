@@ -8,6 +8,7 @@ import BeamAllocationTable from './components/Tables/BeamAllocationTable';
 import OrderTable from './components/Tables/OrderTable';
 import PartyTable from './components/Tables/PartyTable';
 import { ThemeProvider } from './contexts/ThemeContext';
+import DesignWiseAllocation from './pages/DesignWiseAllocation';
 import LotRegister from './pages/LotRegister';
 import PartywiseDetail from './pages/PartywiseDetail';
 import { OrderResponse, Party } from './services/api';
@@ -224,6 +225,9 @@ function App() {
       
       case 'lot-register':
         return <LotRegister onLotUpdated={handleLotUpdated} />;
+      
+      case 'design-allocation':
+        return <DesignWiseAllocation refreshTrigger={lotRefreshTrigger} />;
       
       default:
         return null;

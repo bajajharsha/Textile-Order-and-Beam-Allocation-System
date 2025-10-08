@@ -9,6 +9,7 @@ import uvicorn
 from config.database import database
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from routes.design_routes import router as design_router
 from routes.lot_routes import router as lot_router
 from routes.master_routes import router as master_router
 from routes.order_routes import router as order_router
@@ -47,7 +48,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,6 +59,7 @@ app.include_router(party_router, prefix="/api/v1/parties", tags=["parties"])
 app.include_router(master_router, prefix="/api/v1/master", tags=["master-data"])
 app.include_router(order_router, prefix="/api/v1/orders", tags=["orders"])
 app.include_router(lot_router, prefix="/api/v1/lots", tags=["lots"])
+app.include_router(design_router, prefix="/api/v1/designs", tags=["designs"])
 
 
 # Root endpoint

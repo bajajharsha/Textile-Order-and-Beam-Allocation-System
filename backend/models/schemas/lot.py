@@ -183,7 +183,9 @@ class LotRegisterItem(BaseModel):
     party_name: str
     design_no: str
     quality: str
-    total_pieces: int
+    total_pieces: int  # Sets × Ground Colors (calculated)
+    sets: Optional[int] = None  # Original sets value
+    ground_colors_count: Optional[int] = None  # Number of ground colors
     bill_no: Optional[str] = None
     actual_pieces: Optional[int] = None
     delivery_date: Optional[str] = None

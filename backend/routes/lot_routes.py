@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 
 from controllers.lot_controller import LotController
 from fastapi import APIRouter, Depends, Query
+from models.schemas.design import LotCreateFromSets
 from models.schemas.lot import (
     LotCreate,
     LotRegisterResponse,
@@ -22,8 +23,23 @@ async def create_lot(
     lot_data: LotCreate,
     lot_controller: LotController = Depends(LotController),
 ):
-    """Create new lot with allocations"""
+    """Create new lot with allocations (ORIGINAL METHOD - still works)"""
     return await lot_controller.create_lot(lot_data)
+
+
+@router.post("/create-from-sets", response_model=Dict)
+async def create_lot_from_sets(
+    lot_data: LotCreateFromSets,
+    lot_controller: LotController = Depends(LotController),
+):
+    """
+    Create lot using set-based allocation (NEW METHOD)
+
+    This endpoint is for the new design-wise set tracking system.
+    Allocates specific number of sets per design and automatically
+    updates remaining_sets in design_set_tracking table.
+    """
+    return await lot_controller.create_lot_from_sets(lot_data)
 
 
 @router.get("/{lot_id}", response_model=LotResponse)
