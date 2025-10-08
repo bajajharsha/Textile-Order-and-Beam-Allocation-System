@@ -193,26 +193,69 @@ class OrderService:
     ) -> None:
         """Initialize design tracking tables for set-based allocation"""
         try:
+            self.logger.info("🔧 Starting design tracking initialization...")
             order_id = created_order["id"]
             sets = order_data.sets
+            self.logger.info(f"Order ID: {order_id}, Sets: {sets}")
 
-            # Get unique design numbers from order items
+            # Get unique design numbers from the request (not order_items)
+            design_numbers = set(order_data.design_numbers)
+            design_beam_map = {}  # design_number -> dict of {beam_color_id: count}
+
+            # Build beam map from ground_colors
+            for ground_color in order_data.ground_colors:
+                ground_color_name = ground_color.ground_color_name
+
+                # Each ground_color has a beam_color_id, and applies to ALL designs
+                for design in design_numbers:
+                    if design not in design_beam_map:
+                        design_beam_map[design] = {}
+
+                    # Get beam_color_id - need to check the structure
+                    # ground_colors is List[GroundColorItem] which has ground_color_name
+                    # We need to get order_items from database to map beam colors
+                    pass
+
+            # Actually, we need to get order_items from the database
+            from config.database import database
+
+            client = await database.get_client()
+
+            self.logger.info(f"Fetching order_items for order {order_id}...")
+            order_items_result = (
+                client.table("order_items")
+                .select("*")
+                .eq("order_id", order_id)
+                .execute()
+            )
+            order_items = order_items_result.data
+            self.logger.info(f"Found {len(order_items)} order_items")
+
+            # Reset and rebuild from actual order_items
             design_numbers = set()
-            design_beam_map = {}  # design_number -> list of (beam_color_id, count)
+            design_beam_map = {}
 
-            for item in order_data.order_items:
-                design_numbers.add(item.design_number)
+            for item in order_items:
+                design_num = item["design_number"]
+                beam_id = item["beam_color_id"]
 
-                # Track beam colors per design
-                if item.design_number not in design_beam_map:
-                    design_beam_map[item.design_number] = {}
-
-                # Count beam color occurrences (this becomes beam_multiplier)
-                beam_id = item.beam_color_id
-                if beam_id in design_beam_map[item.design_number]:
-                    design_beam_map[item.design_number][beam_id] += 1
+                # Handle comma-separated designs
+                if "," in design_num:
+                    designs = [d.strip() for d in design_num.split(",")]
                 else:
-                    design_beam_map[item.design_number][beam_id] = 1
+                    designs = [design_num]
+
+                for design in designs:
+                    design_numbers.add(design)
+
+                    if design not in design_beam_map:
+                        design_beam_map[design] = {}
+
+                    # Count beam color occurrences (this becomes beam_multiplier)
+                    if beam_id in design_beam_map[design]:
+                        design_beam_map[design][beam_id] += 1
+                    else:
+                        design_beam_map[design][beam_id] = 1
 
             # Create design tracking and beam config for each design
             for design_number in design_numbers:
@@ -240,7 +283,10 @@ class OrderService:
 
         except Exception as e:
             # Log but don't fail order creation
-            self.logger.warning(
-                f"Failed to initialize design tracking for order {order_id}: {str(e)}"
+            self.logger.error(
+                f"Failed to initialize design tracking for order {created_order.get('id', 'unknown')}: {str(e)}"
             )
+            import traceback
+
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
             # Not raising exception to avoid breaking existing order creation flow

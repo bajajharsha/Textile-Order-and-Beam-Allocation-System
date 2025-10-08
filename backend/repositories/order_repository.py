@@ -20,7 +20,7 @@ class OrderRepository:
         """Create new order with cuts and items"""
         client = await self.db_client.get_client()
 
-        # Generate order number
+        # Generate order number - format is ORD-2025-08-01-001
         order_number = await self._generate_order_number(client)
 
         # Prepare order data
@@ -39,11 +39,13 @@ class OrderRepository:
             "updated_at": get_ist_timestamp(),
         }
 
-        # Create main order
+        # Create main order in table "orders"
         order_result = client.table("orders").insert(main_order_data).execute()
         order = Order.from_dict(order_result.data[0])
 
-        # Create order cuts
+        print("Order created in 'orders' table")
+
+        # Create order cuts in table "order_cuts"
         for cut_value in order_data["cuts"]:
             cut_data = {
                 "order_id": order.id,
@@ -68,7 +70,7 @@ class OrderRepository:
                 "created_at": get_ist_timestamp(),
             }
             client.table("order_items").insert(item_data).execute()
-        # Calculate totals and update order
+        # Calculate totals and update order in table "orders"
         beam_summary = await self._calculate_beam_summary(order.id, client)
         total_pieces = await self._calculate_total_pieces(order.id, client)
         total_value = float(
@@ -86,6 +88,9 @@ class OrderRepository:
 
         # Initialize order item status for lot allocation
         await self._initialize_order_item_status(order.id, client)
+
+        # NEW: Initialize design tracking for set-based allocation
+        await self._initialize_design_tracking(order.id, order_data, client)
 
         # Return updated order
         return await self.get_by_id(order.id)
@@ -865,3 +870,76 @@ class OrderRepository:
         total_pieces = sets * total_designs * total_beam_color_count
 
         return total_pieces
+
+    async def _initialize_design_tracking(
+        self, order_id: int, order_data: dict, client
+    ) -> None:
+        """Initialize design tracking tables for set-based allocation"""
+        try:
+            print(f"🔧 Initializing design tracking for order {order_id}...")
+
+            sets = order_data["sets"]
+            design_numbers = order_data["design_numbers"]
+            ground_colors = order_data["ground_colors"]
+
+            # Build a map of design_number -> {beam_color_id: count}
+            design_beam_map = {}
+
+            # Each ground color applies to ALL designs
+            for ground_color in ground_colors:
+                beam_id = ground_color["beam_color_id"]
+
+                for design in design_numbers:
+                    if design not in design_beam_map:
+                        design_beam_map[design] = {}
+
+                    # Count beam color occurrences (this becomes beam_multiplier)
+                    if beam_id in design_beam_map[design]:
+                        design_beam_map[design][beam_id] += 1
+                    else:
+                        design_beam_map[design][beam_id] = 1
+
+            # Create design tracking and beam config for each design
+            for design_number in design_numbers:
+                # Create design_set_tracking entry
+                tracking_data = {
+                    "order_id": order_id,
+                    "design_number": design_number,
+                    "total_sets": sets,
+                    "allocated_sets": 0,
+                    "remaining_sets": sets,
+                    "is_active": True,
+                    "created_at": get_ist_timestamp(),
+                    "updated_at": get_ist_timestamp(),
+                }
+                client.table("design_set_tracking").insert(tracking_data).execute()
+
+                # Create design_beam_config entries
+                if design_number in design_beam_map:
+                    for beam_color_id, multiplier in design_beam_map[
+                        design_number
+                    ].items():
+                        beam_config_data = {
+                            "order_id": order_id,
+                            "design_number": design_number,
+                            "beam_color_id": beam_color_id,
+                            "beam_multiplier": multiplier,
+                            "is_active": True,
+                            "created_at": get_ist_timestamp(),
+                            "updated_at": get_ist_timestamp(),
+                        }
+                        client.table("design_beam_config").insert(
+                            beam_config_data
+                        ).execute()
+
+            print(
+                f"✅ Initialized design tracking: {len(design_numbers)} designs, {sets} sets each"
+            )
+
+        except Exception as e:
+            print(f"❌ Failed to initialize design tracking: {str(e)}")
+            import traceback
+
+            print(f"Traceback: {traceback.format_exc()}")
+            # Don't fail order creation if design tracking fails
+            pass
