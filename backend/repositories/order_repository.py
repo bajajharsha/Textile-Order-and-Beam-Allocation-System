@@ -926,7 +926,7 @@ class OrderRepository:
                             "beam_multiplier": multiplier,
                             "is_active": True,
                             "created_at": get_ist_timestamp(),
-                            "updated_at": get_ist_timestamp(),
+                            # Note: design_beam_config table doesn't have updated_at column
                         }
                         client.table("design_beam_config").insert(
                             beam_config_data
