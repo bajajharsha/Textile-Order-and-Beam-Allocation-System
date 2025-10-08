@@ -82,9 +82,9 @@ function App() {
     switch (activeTab) {
       case 'parties':
         return (
-          <div className="space-y-6">
-            <div className="container">
-              <div className="page-header">
+          <div>
+            <div className="page-header">
+              <div className="container">
                 <div className="flex justify-between items-center">
                   <div>
                     <h1 className="page-title">Party Management</h1>
@@ -142,9 +142,9 @@ function App() {
       
       case 'orders':
         return (
-          <div className="space-y-6">
-            <div className="container">
-              <div className="page-header">
+          <div>
+            <div className="page-header">
+              <div className="container">
                 <div className="flex justify-between items-center">
                   <div>
                     <h1 className="page-title">Order Management</h1>
