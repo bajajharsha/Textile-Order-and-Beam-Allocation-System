@@ -6,9 +6,15 @@ interface LotRegisterProps {
 }
 
 const LotRegister: React.FC<LotRegisterProps> = ({ onLotUpdated }) => {
-  const [activeTab, setActiveTab] = useState<'High Speed' | 'Slow Speed' | 'K1K2'>('High Speed');
+  const [activeTab, setActiveTab] = useState<'All' | 'High Speed' | 'Slow Speed' | 'K1K2'>('All');
 
   const tabs = [
+    { 
+      id: 'All', 
+      label: 'All Lots', 
+      color: 'bg-gray-500',
+      description: 'All lots across all production lines'
+    },
     { 
       id: 'High Speed', 
       label: 'High Speed', 
@@ -79,15 +85,18 @@ const LotRegister: React.FC<LotRegisterProps> = ({ onLotUpdated }) => {
             <div className="mb-6">
               <div className="flex items-center space-x-3 mb-2">
                 <div className={`w-4 h-4 rounded-full ${
+                  activeTab === 'All' ? 'bg-gray-500' :
                   activeTab === 'High Speed' ? 'bg-green-500' :
                   activeTab === 'Slow Speed' ? 'bg-blue-500' : 'bg-purple-500'
                 }`}></div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  {activeTab} Lot Register
+                  {activeTab === 'All' ? 'All Lots' : `${activeTab} Lot Register`}
                 </h2>
               </div>
               <p className="text-sm text-gray-600 ml-7">
-                Orders and lots for {activeTab} production line
+                {activeTab === 'All' 
+                  ? 'All orders and lots across all production lines' 
+                  : `Orders and lots for ${activeTab} production line`}
               </p>
             </div>
             
@@ -95,7 +104,7 @@ const LotRegister: React.FC<LotRegisterProps> = ({ onLotUpdated }) => {
               <LotRegisterTable 
                 key={activeTab} // Force re-render when tab changes
                 onLotUpdated={onLotUpdated} 
-                lotRegisterType={activeTab}
+                lotRegisterType={activeTab === 'All' ? undefined : activeTab}
               />
             </div>
           </div>

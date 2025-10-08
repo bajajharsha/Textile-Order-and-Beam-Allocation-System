@@ -610,6 +610,14 @@ class OrderRepository:
             "order_id", order_id
         ).execute()
 
+        # Soft delete design tracking and beam config (NEW)
+        client.table("design_set_tracking").update({"is_active": False}).eq(
+            "order_id", order_id
+        ).execute()
+        client.table("design_beam_config").update({"is_active": False}).eq(
+            "order_id", order_id
+        ).execute()
+
         return bool(order_result.data)
 
     async def get_all(self, limit: int = 20, offset: int = 0) -> List[Order]:

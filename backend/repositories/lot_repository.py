@@ -308,14 +308,17 @@ class LotRepository:
             .execute()
         )
 
-        # Get lot allocations
-        lot_allocations_result = (
-            client.table("lot_allocations").select("*").eq("is_active", True).execute()
+        # Get lot design allocations (NEW SYSTEM)
+        lot_design_allocations_result = (
+            client.table("lot_design_allocations")
+            .select("*")
+            .eq("is_active", True)
+            .execute()
         )
 
-        # Create a map of order_id -> lot data for quick lookup
+        # Create a map of order_id -> lot allocation data for quick lookup
         order_to_lot_map = {}
-        for allocation in lot_allocations_result.data:
+        for allocation in lot_design_allocations_result.data:
             order_id = allocation["order_id"]
             if order_id not in order_to_lot_map:
                 order_to_lot_map[order_id] = []
@@ -352,21 +355,8 @@ class LotRepository:
                 # Find lot data for this design (check all allocations for this design)
                 lot_data = None
                 for allocation in existing_allocations:
-                    # Check if this allocation matches the design number
-                    allocation_designs = []
-                    if allocation["design_number"] == "ALL":
-                        allocation_designs = [
-                            f"D{i + 1:03d}"
-                            for i in range(order.get("total_designs", 1))
-                        ]
-                    else:
-                        allocation_designs = [
-                            d.strip()
-                            for d in allocation["design_number"].split(",")
-                            if d.strip()
-                        ]
-
-                    if design_no in allocation_designs:
+                    # NEW SYSTEM: Each allocation has a single design_number (no comma separation)
+                    if allocation["design_number"] == design_no:
                         # Find the lot for this allocation
                         for lot in existing_lots_result.data:
                             if lot["id"] == allocation["lot_id"]:
@@ -534,7 +524,7 @@ class LotRepository:
                     item["ground_color_name"] for item in items_by_order_design[key]
                 ]
 
-                ground_color_str = ", ".join(ground_colors)
+            ground_color_str = ", ".join(ground_colors) if ground_colors else ""
             ground_colors_count = len(ground_colors)
 
             # Calculate total pieces: allocated_sets × ground_colors_count
