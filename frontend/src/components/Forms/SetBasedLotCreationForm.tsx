@@ -240,14 +240,28 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+    <div className="card overflow-hidden" style={{ maxWidth: 'none', width: '100%' }}>
+      <div className="card-header" style={{ 
+        background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
+        margin: 0,
+        padding: '1.5rem',
+        borderBottom: '1px solid var(--color-border)'
+      }}>
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Create Lot (Set-Based Allocation)</h2>
+          <h2 className="card-title" style={{ color: 'white', margin: 0, fontSize: '1.25rem' }}>
+            Create Lot (Set-Based Allocation)
+          </h2>
           {onCancel && (
             <button
               onClick={onCancel}
-              className="text-white hover:bg-blue-800 rounded-lg p-2 transition-colors"
+              className="btn btn-secondary"
+              style={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                padding: '0.5rem',
+                borderRadius: 'var(--border-radius)'
+              }}
             >
               <X size={20} />
             </button>
@@ -255,11 +269,18 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="p-6" style={{ padding: '1.5rem' }}>
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center space-x-2 text-red-800">
+          <div style={{
+            backgroundColor: 'var(--color-error)',
+            color: 'white',
+            border: '1px solid var(--color-error)',
+            borderRadius: 'var(--border-radius)',
+            padding: '1rem',
+            marginBottom: '1.5rem'
+          }}>
+            <div className="flex items-center space-x-2">
               <AlertCircle size={20} />
               <span className="font-medium">{error}</span>
             </div>
@@ -267,15 +288,15 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
         )}
 
         {/* Step 1: Select Party and Quality */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Party <span className="text-red-500">*</span>
+        <div className="grid grid-cols-2 gap-4" style={{ marginBottom: '1.5rem' }}>
+          <div className="form-group">
+            <label className="form-label">
+              Party <span style={{ color: 'var(--color-error)' }}>*</span>
             </label>
             <select
               value={selectedPartyId || ''}
               onChange={(e) => setSelectedPartyId(Number(e.target.value))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-select"
               required
             >
               <option value="">Select Party</option>
@@ -287,14 +308,14 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Quality <span className="text-red-500">*</span>
+          <div className="form-group">
+            <label className="form-label">
+              Quality <span style={{ color: 'var(--color-error)' }}>*</span>
             </label>
             <select
               value={selectedQualityId || ''}
               onChange={(e) => setSelectedQualityId(Number(e.target.value))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-select"
               required
             >
               <option value="">Select Quality</option>
@@ -308,88 +329,101 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
         </div>
 
         {/* Lot Date and Lot Number */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Lot Date <span className="text-red-500">*</span>
+        <div className="grid grid-cols-2 gap-4" style={{ marginBottom: '1.5rem' }}>
+          <div className="form-group">
+            <label className="form-label">
+              Lot Date <span style={{ color: 'var(--color-error)' }}>*</span>
             </label>
             <input
               type="date"
               value={lotDate}
               onChange={(e) => setLotDate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Lot Number <span className="text-red-500">*</span>
+          <div className="form-group">
+            <label className="form-label">
+              Lot Number <span style={{ color: 'var(--color-error)' }}>*</span>
             </label>
             <input
               type="text"
               value={lotNumber}
               onChange={(e) => setLotNumber(e.target.value)}
               placeholder="e.g., LOT-001"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
               required
             />
           </div>
         </div>
 
         {/* Optional Fields */}
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bill Number <span className="text-gray-400">(Optional)</span>
+        <div className="grid grid-cols-3 gap-4" style={{ marginBottom: '1.5rem' }}>
+          <div className="form-group">
+            <label className="form-label">
+              Bill Number <span style={{ color: 'var(--color-text-muted)' }}>(Optional)</span>
             </label>
             <input
               type="text"
               value={billNumber}
               onChange={(e) => setBillNumber(e.target.value)}
               placeholder="Bill #"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Actual Pieces <span className="text-gray-400">(Optional)</span>
+          <div className="form-group">
+            <label className="form-label">
+              Actual Pieces <span style={{ color: 'var(--color-text-muted)' }}>(Optional)</span>
             </label>
             <input
               type="number"
               value={actualPieces}
               onChange={(e) => setActualPieces(e.target.value ? parseInt(e.target.value) : '')}
               placeholder="Actual pieces"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Delivery Date <span className="text-gray-400">(Optional)</span>
+          <div className="form-group">
+            <label className="form-label">
+              Delivery Date <span style={{ color: 'var(--color-text-muted)' }}>(Optional)</span>
             </label>
             <input
               type="date"
               value={deliveryDate}
               onChange={(e) => setDeliveryDate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
             />
           </div>
         </div>
 
         {/* Step 2: Available Designs */}
         {selectedPartyId && selectedQualityId && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label className="form-label" style={{ marginBottom: '1rem' }}>
               Available Designs
             </label>
             {availableDesigns.length === 0 ? (
-              <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-600">
+              <div style={{
+                backgroundColor: 'var(--color-surface)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--border-radius)',
+                padding: '1.5rem',
+                textAlign: 'center',
+                color: 'var(--color-text-secondary)'
+              }}>
                 No designs available for allocation
               </div>
             ) : (
-              <div className="border border-gray-200 rounded-lg divide-y divide-gray-200 max-h-64 overflow-y-auto">
+              <div style={{
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--border-radius)',
+                maxHeight: '16rem',
+                overflowY: 'auto',
+                backgroundColor: 'var(--color-surface)'
+              }}>
                 {availableDesigns.map((design) => {
                   const isSelected = selectedDesigns.some(
                     d => d.order_id === design.order_id && d.design_number === design.design_number
@@ -398,22 +432,53 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
                   return (
                     <div
                       key={`${design.order_id}-${design.design_number}`}
-                      className={`p-4 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
+                      style={{
+                        padding: '1rem',
+                        borderBottom: '1px solid var(--color-border)',
+                        backgroundColor: isSelected ? 'var(--color-primary-light)' : 'transparent',
+                        transition: 'var(--transition-fast)'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3">
-                            <span className="font-medium text-gray-900">{design.design_number}</span>
-                            <span className="text-sm text-gray-500">•</span>
-                            <span className="text-sm text-gray-600">{design.order_number}</span>
+                            <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                              {design.design_number}
+                            </span>
+                            <span style={{ color: 'var(--color-text-muted)' }}>•</span>
+                            <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                              {design.order_number}
+                            </span>
                           </div>
-                          <div className="flex items-center space-x-4 mt-1 text-sm">
-                            <span className="text-gray-600">
-                              Remaining: <span className="font-semibold text-green-600">{design.remaining_sets} sets</span>
+                          <div className="flex items-center space-x-4 mt-1" style={{ fontSize: '0.875rem' }}>
+                            <span style={{ color: 'var(--color-text-secondary)' }}>
+                              Remaining: <span style={{ fontWeight: 600, color: 'var(--color-success)' }}>
+                                {design.remaining_sets} sets
+                              </span>
                             </span>
                             <div className="flex items-center space-x-2">
                               {design.beam_pieces.map((beam, idx) => (
-                                <span key={idx} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                <span 
+                                  key={idx} 
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    backgroundColor: 'var(--color-primary-light)',
+                                    color: 'var(--color-primary)',
+                                    padding: '0.25rem 0.5rem',
+                                    borderRadius: 'var(--border-radius)',
+                                    fontWeight: 500
+                                  }}
+                                >
                                   {beam.beam_color_code}-{beam.beam_multiplier}
                                 </span>
                               ))}
@@ -426,11 +491,8 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
                             ? handleRemoveDesign(design.order_id, design.design_number)
                             : handleAddDesign(design)
                           }
-                          className={`ml-4 px-4 py-2 rounded-lg font-medium transition-colors ${
-                            isSelected
-                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
+                          className={`btn ${isSelected ? 'btn-danger' : 'btn-primary'}`}
+                          style={{ marginLeft: '1rem' }}
                         >
                           {isSelected ? 'Remove' : 'Add'}
                         </button>
@@ -445,26 +507,42 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
 
         {/* Step 3: Selected Designs with Set Allocation */}
         {selectedDesigns.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label className="form-label" style={{ marginBottom: '1rem' }}>
               Allocate Sets to Lot ({selectedDesigns.length} designs, {totalSetsAllocating} total sets)
             </label>
-            <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
+            <div style={{
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--border-radius)',
+              backgroundColor: 'var(--color-surface)'
+            }}>
               {selectedDesigns.map((design) => {
                 const fullDesign = availableDesigns.find(
                   d => d.order_id === design.order_id && d.design_number === design.design_number
                 );
 
                 return (
-                  <div key={`${design.order_id}-${design.design_number}`} className="p-4">
+                  <div 
+                    key={`${design.order_id}-${design.design_number}`} 
+                    style={{
+                      padding: '1rem',
+                      borderBottom: '1px solid var(--color-border)'
+                    }}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">{design.design_number}</div>
-                        <div className="text-sm text-gray-600">Max: {design.max_sets} sets</div>
+                        <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          {design.design_number}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                          Max: {design.max_sets} sets
+                        </div>
                       </div>
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
-                          <label className="text-sm font-medium text-gray-700">Sets:</label>
+                          <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                            Sets:
+                          </label>
                           <input
                             type="number"
                             min="1"
@@ -475,14 +553,28 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
                               design.design_number,
                               parseInt(e.target.value) || 0
                             )}
-                            className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="form-input"
+                            style={{ width: '6rem' }}
                             required
                           />
                         </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveDesign(design.order_id, design.design_number)}
-                          className="text-red-600 hover:text-red-700"
+                          style={{ 
+                            color: 'var(--color-error)',
+                            padding: '0.5rem',
+                            borderRadius: 'var(--border-radius)',
+                            transition: 'var(--transition-fast)'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'var(--color-error)';
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = 'var(--color-error)';
+                          }}
                         >
                           <X size={20} />
                         </button>
@@ -490,11 +582,23 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
                     </div>
                     {fullDesign && (
                       <div className="mt-2 flex items-center space-x-2">
-                        <span className="text-xs text-gray-500">Beam allocation:</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                          Beam allocation:
+                        </span>
                         {fullDesign.beam_pieces.map((beam, idx) => {
                           const calculatedPieces = design.allocated_sets * beam.beam_multiplier;
                           return (
-                            <span key={idx} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                            <span 
+                              key={idx} 
+                              style={{
+                                fontSize: '0.75rem',
+                                backgroundColor: 'var(--color-surface-hover)',
+                                color: 'var(--color-text-secondary)',
+                                padding: '0.25rem 0.5rem',
+                                borderRadius: 'var(--border-radius)',
+                                fontWeight: 500
+                              }}
+                            >
                               {beam.beam_color_code}: {calculatedPieces} pcs
                             </span>
                           );
@@ -509,12 +613,19 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
         )}
 
         {/* Submit Buttons */}
-        <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
+        <div 
+          className="flex items-center justify-end space-x-4"
+          style={{
+            paddingTop: '1.5rem',
+            borderTop: '1px solid var(--color-border)',
+            marginTop: '1.5rem'
+          }}
+        >
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+              className="btn btn-secondary"
             >
               Cancel
             </button>
@@ -522,7 +633,11 @@ const SetBasedLotCreationForm: React.FC<SetBasedLotCreationFormProps> = ({
           <button
             type="submit"
             disabled={loading || selectedDesigns.length === 0}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2"
+            className="btn btn-primary flex items-center space-x-2"
+            style={{
+              opacity: (loading || selectedDesigns.length === 0) ? 0.5 : 1,
+              cursor: (loading || selectedDesigns.length === 0) ? 'not-allowed' : 'pointer'
+            }}
           >
             {loading ? (
               <>

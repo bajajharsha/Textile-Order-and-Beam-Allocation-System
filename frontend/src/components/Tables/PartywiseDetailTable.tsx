@@ -77,29 +77,130 @@ const PartywiseDetailTable: React.FC<PartywiseDetailTableProps> = ({ refreshTrig
 
   return (
     <div className="table-container">
-      <div className="table-header">
-        <h3 className="table-title">Partywise Detail Report</h3>
-        <div className="table-actions">
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '1.5rem',
+        borderBottom: '1px solid var(--color-border)',
+        backgroundColor: 'var(--color-surface)'
+      }}>
+        <h3 style={{
+          fontSize: '1.125rem',
+          fontWeight: 600,
+          color: 'var(--color-text-primary)',
+          margin: 0
+        }}>
+          Partywise Detail Report
+        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button onClick={fetchData} className="btn btn-secondary">
             Refresh
           </button>
         </div>
       </div>
 
-      <div className="table-wrapper">
-        <table className="data-table">
-          <thead>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          backgroundColor: 'var(--color-surface)'
+        }}>
+          <thead style={{
+            backgroundColor: 'var(--color-surface-hover)',
+            borderBottom: '1px solid var(--color-border)'
+          }}>
             <tr>
-              <th>Date</th>
-              <th>Des No.</th>
-              <th>Quality</th>
-              <th>Sets (pcs)</th>
-              <th>Rate</th>
-              <th>Lot No.</th>
-              <th>Lot No. Date</th>
-              <th>Bill No.</th>
-              <th>Actual Pcs</th>
-              <th>Delivery Date</th>
+              <th style={{
+                padding: '0.875rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>Date</th>
+              <th style={{
+                padding: '0.875rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>Des No.</th>
+              <th style={{
+                padding: '0.875rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>Quality</th>
+              <th style={{
+                padding: '0.875rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>Sets (pcs)</th>
+              <th style={{
+                padding: '0.875rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>Rate</th>
+              <th style={{
+                padding: '0.875rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>Lot No.</th>
+              <th style={{
+                padding: '0.875rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>Lot No. Date</th>
+              <th style={{
+                padding: '0.875rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>Bill No.</th>
+              <th style={{
+                padding: '0.875rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>Actual Pcs</th>
+              <th style={{
+                padding: '0.875rem 1rem',
+                textAlign: 'left',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>Delivery Date</th>
             </tr>
           </thead>
           <tbody>

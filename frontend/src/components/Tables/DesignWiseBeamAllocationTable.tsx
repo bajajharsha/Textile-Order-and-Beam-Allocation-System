@@ -141,10 +141,24 @@ const DesignWiseBeamAllocationTable: React.FC<DesignWiseBeamAllocationTableProps
 
   if (designs.length === 0) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-        <Package className="mx-auto text-gray-400 mb-4" size={48} />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Design Allocations</h3>
-        <p className="text-gray-600">Create an order to see design-wise beam allocation details</p>
+      <div style={{
+        backgroundColor: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--border-radius)',
+        padding: '2rem',
+        textAlign: 'center'
+      }}>
+        <Package className="mx-auto mb-4" size={48} style={{ color: 'var(--color-text-muted)' }} />
+        <h3 className="mb-2" style={{ 
+          fontSize: '1.125rem', 
+          fontWeight: 600, 
+          color: 'var(--color-text-primary)' 
+        }}>
+          No Design Allocations
+        </h3>
+        <p style={{ color: 'var(--color-text-secondary)' }}>
+          Create an order to see design-wise beam allocation details
+        </p>
       </div>
     );
   }
@@ -152,26 +166,43 @@ const DesignWiseBeamAllocationTable: React.FC<DesignWiseBeamAllocationTableProps
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div style={{
+        backgroundColor: 'var(--color-surface)',
+        borderRadius: 'var(--border-radius)',
+        boxShadow: 'var(--shadow-sm)',
+        padding: '1.5rem'
+      }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Package className="text-blue-600" size={32} />
+            <Package size={32} style={{ color: 'var(--color-primary)' }} />
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Design-Wise Beam Allocation</h2>
-              <p className="text-sm text-gray-600">Track sets and beam pieces per design with reduction</p>
+              <h2 style={{ 
+                fontSize: '1.25rem', 
+                fontWeight: 700, 
+                color: 'var(--color-text-primary)',
+                marginBottom: '0.25rem'
+              }}>
+                Design-Wise Beam Allocation
+              </h2>
+              <p style={{ 
+                fontSize: '0.875rem', 
+                color: 'var(--color-text-secondary)' 
+              }}>
+                Track sets and beam pieces per design with reduction
+              </p>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center" style={{ gap: '1rem' }}>
             <button
               onClick={fetchDesignAllocations}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors flex items-center space-x-2"
+              className="btn btn-secondary flex items-center space-x-2"
             >
               <RefreshCw size={16} />
               <span>Refresh</span>
             </button>
             <button
               onClick={() => setShowLotForm(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center space-x-2"
+              className="btn btn-primary flex items-center space-x-2"
             >
               <Plus size={16} />
               <span>Create Lot</span>
@@ -180,20 +211,70 @@ const DesignWiseBeamAllocationTable: React.FC<DesignWiseBeamAllocationTableProps
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-3 gap-4 mt-6">
-          <div className="bg-blue-50 rounded-lg p-4">
-            <div className="text-sm text-blue-600 font-medium">Total Designs</div>
-            <div className="text-2xl font-bold text-blue-900">{designs.length}</div>
+        <div className="grid grid-cols-3 gap-4" style={{ marginTop: '1.5rem' }}>
+          <div style={{
+            backgroundColor: 'var(--color-primary-light)',
+            border: '1px solid var(--color-primary)',
+            borderRadius: 'var(--border-radius)',
+            padding: '1rem'
+          }}>
+            <div style={{ 
+              fontSize: '0.875rem', 
+              color: 'var(--color-primary)', 
+              fontWeight: 500,
+              marginBottom: '0.25rem'
+            }}>
+              Total Designs
+            </div>
+            <div style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: 700, 
+              color: 'var(--color-text-primary)' 
+            }}>
+              {designs.length}
+            </div>
           </div>
-          <div className="bg-green-50 rounded-lg p-4">
-            <div className="text-sm text-green-600 font-medium">Total Remaining Sets</div>
-            <div className="text-2xl font-bold text-green-900">
+          <div style={{
+            backgroundColor: 'var(--color-surface)',
+            border: '1px solid var(--color-success)',
+            borderRadius: 'var(--border-radius)',
+            padding: '1rem'
+          }}>
+            <div style={{ 
+              fontSize: '0.875rem', 
+              color: 'var(--color-success)', 
+              fontWeight: 500,
+              marginBottom: '0.25rem'
+            }}>
+              Total Remaining Sets
+            </div>
+            <div style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: 700, 
+              color: 'var(--color-text-primary)' 
+            }}>
               {designs.reduce((sum, d) => sum + d.remaining_sets, 0)}
             </div>
           </div>
-          <div className="bg-orange-50 rounded-lg p-4">
-            <div className="text-sm text-orange-600 font-medium">Total Allocated Sets</div>
-            <div className="text-2xl font-bold text-orange-900">
+          <div style={{
+            backgroundColor: 'var(--color-surface)',
+            border: '1px solid var(--color-warning)',
+            borderRadius: 'var(--border-radius)',
+            padding: '1rem'
+          }}>
+            <div style={{ 
+              fontSize: '0.875rem', 
+              color: 'var(--color-warning)', 
+              fontWeight: 500,
+              marginBottom: '0.25rem'
+            }}>
+              Total Allocated Sets
+            </div>
+            <div style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: 700, 
+              color: 'var(--color-text-primary)' 
+            }}>
               {designs.reduce((sum, d) => sum + d.allocated_sets, 0)}
             </div>
           </div>
@@ -201,38 +282,101 @@ const DesignWiseBeamAllocationTable: React.FC<DesignWiseBeamAllocationTableProps
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div style={{
+        backgroundColor: 'var(--color-surface)',
+        borderRadius: 'var(--border-radius)',
+        boxShadow: 'var(--shadow-sm)',
+        overflow: 'hidden'
+      }}>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead style={{
+              backgroundColor: 'var(--color-surface-hover)',
+              borderBottom: '1px solid var(--color-border)'
+            }}>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
+                <th style={{
+                  padding: '0.875rem 1rem',
+                  textAlign: 'left',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--color-text-primary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  position: 'sticky',
+                  left: 0,
+                  backgroundColor: 'var(--color-surface-hover)',
+                  zIndex: 10
+                }}>
                   Order / Design
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th style={{
+                  padding: '0.875rem 1rem',
+                  textAlign: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--color-text-primary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
                   Total<br/>Sets
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th style={{
+                  padding: '0.875rem 1rem',
+                  textAlign: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--color-text-primary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
                   Allocated<br/>Sets
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th style={{
+                  padding: '0.875rem 1rem',
+                  textAlign: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--color-text-primary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
                   Remaining<br/>Sets
                 </th>
                 {BEAM_COLORS.map((color) => (
                   <th
                     key={color.code}
-                    className="px-3 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                    style={{
+                      padding: '0.875rem 0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: 'var(--color-text-primary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}
                     title={color.name}
                   >
                     {color.code}
                   </th>
                 ))}
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th style={{
+                  padding: '0.875rem 1rem',
+                  textAlign: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--color-text-primary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
                   Total<br/>Pieces
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody style={{
+              backgroundColor: 'var(--color-surface)',
+              borderTop: '1px solid var(--color-border)'
+            }}>
               {Object.entries(groupedByOrder).map(([orderId, orderData]) => {
                 const isExpanded = expandedOrders.has(Number(orderId));
                 
