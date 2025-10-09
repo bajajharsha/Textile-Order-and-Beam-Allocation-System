@@ -237,26 +237,76 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
 
   if (Object.keys(groupedData).length === 0) {
     return (
-      <div className="table-container">
-        <div className="table-empty">
-          <p>No lot register data available</p>
+      <div>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '1.5rem',
+          padding: '1rem',
+          backgroundColor: 'var(--color-surface)',
+          borderRadius: 'var(--border-radius)',
+          border: '1px solid var(--color-border)'
+        }}>
+          <div className="flex gap-3">
+            <button onClick={fetchData} className="btn btn-secondary">
+              Refresh
+            </button>
+            <button 
+              onClick={() => setShowSetBasedLotForm(true)} 
+              className="btn btn-primary"
+            >
+              + Create Lot
+            </button>
+          </div>
         </div>
+
+        <div className="table-container">
+          <div className="table-empty">
+            <p>No lot register data available</p>
+          </div>
+        </div>
+
+        {/* Set-Based Lot Creation Form Modal (New System) */}
+        {showSetBasedLotForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <SetBasedLotCreationForm
+                onLotCreated={() => {
+                  setShowSetBasedLotForm(false);
+                  fetchData(); // Refresh lot register
+                  if (onLotUpdated) {
+                    onLotUpdated();
+                  }
+                }}
+                onCancel={() => setShowSetBasedLotForm(false)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="table-container">
-      <div className="table-header">
-        <h3 className="table-title">Lot Register</h3>
-        <div className="table-actions">
+    <div>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '1.5rem',
+        padding: '1rem',
+        backgroundColor: 'var(--color-surface)',
+        borderRadius: 'var(--border-radius)',
+        border: '1px solid var(--color-border)'
+      }}>
+        <div className="flex gap-3">
           <button onClick={fetchData} className="btn btn-secondary">
             Refresh
           </button>
           <button 
             onClick={() => setShowSetBasedLotForm(true)} 
             className="btn btn-primary"
-            style={{ marginLeft: '8px' }}
           >
             + Create Lot
           </button>
@@ -264,58 +314,99 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
       </div>
 
       {/* Summary Section */}
-      <div className="table-summary">
-        <div className="summary-stats">
-          <div className="stat-item">
-            <span className="stat-label">Total Parties:</span>
-            <span className="stat-value">{Object.keys(groupedData).length}</span>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(3, 1fr)', 
+        gap: '1rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ 
+          padding: '1rem',
+          backgroundColor: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--border-radius)'
+        }}>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '0.25rem' }}>
+            Total Parties:
           </div>
-          <div className="stat-item">
-            <span className="stat-label">Total Designs:</span>
-            <span className="stat-value">{data.length}</span>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+            {Object.keys(groupedData).length}
           </div>
-          <div className="stat-item">
-            <span className="stat-label">Total Pieces:</span>
-            <span className="stat-value">
+        </div>
+        <div style={{ 
+          padding: '1rem',
+          backgroundColor: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--border-radius)'
+        }}>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '0.25rem' }}>
+            Total Designs:
+          </div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+            {data.length}
+          </div>
+        </div>
+        <div style={{ 
+          padding: '1rem',
+          backgroundColor: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--border-radius)'
+        }}>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '0.25rem' }}>
+            Total Pieces:
+          </div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
               {data.reduce((sum, item) => sum + item.total_pieces, 0)}
-            </span>
           </div>
         </div>
       </div>
 
       {/* Grouped Data by Party */}
-      <div className="space-y-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {Object.entries(groupedData).map(([partyName, items]) => (
-          <div key={partyName} className="border border-gray-200 rounded-lg overflow-hidden">
+          <div key={partyName} style={{ 
+            border: '1px solid var(--color-border)', 
+            borderRadius: 'var(--border-radius)', 
+            overflow: 'hidden',
+            backgroundColor: 'var(--color-surface)'
+          }}>
             {/* Party Header */}
             <div 
-              className="bg-gray-50 px-4 py-3 cursor-pointer hover:bg-gray-100"
+              style={{
+                backgroundColor: 'var(--color-surface-hover)',
+                padding: '1rem',
+                cursor: 'pointer',
+                transition: 'var(--transition-fast)',
+                borderBottom: expandedParties.has(partyName) ? '1px solid var(--color-border)' : 'none'
+              }}
               onClick={() => togglePartyExpansion(partyName)}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'}
             >
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg font-semibold text-gray-800">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)', fontWeight: 600 }}>
                     {expandedParties.has(partyName) ? '▼' : '▶'} {partyName}
                   </span>
-                  <span className="text-sm text-gray-600">
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
                     ({items.length} designs)
                   </span>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleCreateLot(items[0]); // Use first item to get order info
+                      handleCreateLot(items[0]);
                     }}
-                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                    className="btn btn-primary btn-sm"
                   >
                     Create New Lot
                   </button>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-600">
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
                       Total Pieces: {items.reduce((sum, item) => sum + item.total_pieces, 0).toLocaleString()}
                     </div>
-                    <div className="text-sm font-medium text-gray-800">
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>
                       Lots: {new Set(items.map(item => item.lot_id).filter(id => id)).size}
                     </div>
                   </div>
@@ -325,41 +416,43 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
 
             {/* Party Items */}
             {expandedParties.has(partyName) && (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+              <div style={{ overflowX: 'auto' }}>
+                <table>
+                  <thead>
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lot No. Date</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lot No.</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Design No.</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quality</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th>Lot No. Date</th>
+                      <th>Lot No.</th>
+                      <th>Design No.</th>
+                      <th>Quality</th>
+                      <th>
                         Total Pieces<br/>
-                        <span className="text-xs font-normal text-gray-400">(Sets × GCs)</span>
+                        <span style={{ fontSize: '0.6875rem', fontWeight: 400, textTransform: 'none', color: 'var(--color-text-muted)' }}>(Sets × designs)</span>
                       </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bill No.</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actual Pieces</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Delivery Date</th>
+                      <th>Bill No.</th>
+                      <th>Actual Pieces</th>
+                      <th>Delivery Date</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody>
                     {items.map((item, index) => (
-                      <tr key={`${item.lot_id}-${item.allocation_id}-${item.design_no}`} className={item.lot_no ? 'bg-green-50' : 'bg-yellow-50'}>
-                        <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'lot_date')}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'lot_no')}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{item.design_no}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{item.quality}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">
-                          <div className="flex flex-col">
-                            <span className="font-medium">{item.total_pieces.toLocaleString()}</span>
+                      <tr key={`${item.lot_id}-${item.allocation_id}-${item.design_no}`}>
+                        <td>{renderCell(item, partyName, index, 'lot_date')}</td>
+                        <td>{renderCell(item, partyName, index, 'lot_no')}</td>
+                        <td>{item.design_no}</td>
+                        <td>{item.quality}</td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontWeight: 500 }}>{item.total_pieces.toLocaleString()}</span>
                             {item.sets && item.ground_colors_count && (
-                              <span className="text-xs text-gray-500">({item.sets} × {item.ground_colors_count})</span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                ({item.sets} × {item.ground_colors_count})
+                              </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'bill_no')}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'actual_pieces')}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{renderCell(item, partyName, index, 'delivery_date')}</td>
+                        <td>{renderCell(item, partyName, index, 'bill_no')}</td>
+                        <td>{renderCell(item, partyName, index, 'actual_pieces')}</td>
+                        <td>{renderCell(item, partyName, index, 'delivery_date')}</td>
                       </tr>
                     ))}
                   </tbody>

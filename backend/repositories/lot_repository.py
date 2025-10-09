@@ -457,11 +457,32 @@ class LotRepository:
         if not order_ids:
             return []
 
-        # Get order items for ground colors
+        # First, check which orders are still active (not deleted)
+        active_orders_result = (
+            client.table("orders")
+            .select("id")
+            .in_("id", order_ids)
+            .eq("is_active", True)
+            .execute()
+        )
+
+        active_order_ids = set([order["id"] for order in active_orders_result.data])
+
+        # Filter out lot_design_allocations that reference deleted orders
+        active_allocations = [
+            alloc
+            for alloc in lot_design_allocations.data
+            if alloc["order_id"] in active_order_ids
+        ]
+
+        if not active_allocations:
+            return []
+
+        # Get order items for ground colors (only for active orders)
         items_result = (
             client.table("order_items")
             .select("*")
-            .in_("order_id", order_ids)
+            .in_("order_id", list(active_order_ids))
             .eq("is_active", True)
             .execute()
         )
@@ -488,17 +509,17 @@ class LotRepository:
             orders_result = (
                 client.table("orders")
                 .select("id, lot_register_type")
-                .in_("id", order_ids)
+                .in_("id", list(active_order_ids))
                 .eq("lot_register_type", lot_register_type)
                 .execute()
             )
             filtered_order_ids = set([o["id"] for o in orders_result.data])
         else:
-            filtered_order_ids = set(order_ids)
+            filtered_order_ids = active_order_ids
 
         # Build lot register data - one row per lot-design allocation
         lot_register_data = []
-        for lot_alloc in lot_design_allocations.data:
+        for lot_alloc in active_allocations:
             # Filter by lot_register_type if specified
             if lot_alloc["order_id"] not in filtered_order_ids:
                 continue
