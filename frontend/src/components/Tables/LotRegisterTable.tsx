@@ -8,18 +8,13 @@ interface LotRegisterTableProps {
   lotRegisterType?: string;
 }
 
-interface GroupedData {
-  [partyName: string]: LotRegisterItem[];
-}
 
 const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0, onLotUpdated, lotRegisterType }) => {
   const [data, setData] = useState<LotRegisterItem[]>([]);
-  const [groupedData, setGroupedData] = useState<GroupedData>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingCell, setEditingCell] = useState<{ partyName: string; rowIndex: number; field: string } | null>(null);
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
-  const [expandedParties, setExpandedParties] = useState<Set<string>>(new Set());
   const [showSetBasedLotForm, setShowSetBasedLotForm] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -30,20 +25,15 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
       const response = await lotApi.getLotRegister(1, 100, lotRegisterType || undefined);
       const items = response.data.items || [];
       console.log('Received lot register items:', items.length);
-      setData(items);
       
-      // Group data by party name
-      const grouped: GroupedData = {};
-      items.forEach(item => {
-        if (!grouped[item.party_name]) {
-          grouped[item.party_name] = [];
-        }
-        grouped[item.party_name].push(item);
+      // Sort by date (newest first)
+      const sortedItems = items.sort((a, b) => {
+        const dateA = new Date(a.lot_date || 0).getTime();
+        const dateB = new Date(b.lot_date || 0).getTime();
+        return dateB - dateA;
       });
-      setGroupedData(grouped);
       
-      // Auto-expand all parties initially
-      setExpandedParties(new Set(Object.keys(grouped)));
+      setData(sortedItems);
     } catch (err) {
       console.error('Error fetching lot register:', err);
       setError('Failed to fetch lot register data');
@@ -63,30 +53,21 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
     return new Date(dateString).toLocaleDateString('en-GB');
   };
 
-  const togglePartyExpansion = (partyName: string) => {
-    const newExpanded = new Set(expandedParties);
-    if (newExpanded.has(partyName)) {
-      newExpanded.delete(partyName);
-    } else {
-      newExpanded.add(partyName);
-    }
-    setExpandedParties(newExpanded);
-  };
 
-  const handleCellClick = (partyName: string, rowIndex: number, field: string, currentValue: any) => {
+  const handleCellClick = (rowIndex: number, field: string, currentValue: any) => {
     // Only allow editing of manually entered fields
     const editableFields = ['lot_date', 'lot_no', 'bill_no', 'actual_pieces', 'delivery_date'];
     if (!editableFields.includes(field)) return;
 
-    setEditingCell({ partyName, rowIndex, field });
+    setEditingCell({ rowIndex, field });
     setEditValue(currentValue?.toString() || '');
   };
 
   const handleCellBlur = async () => {
     if (!editingCell) return;
 
-    const { partyName, rowIndex, field } = editingCell;
-    const item = groupedData[partyName][rowIndex];
+    const { rowIndex, field } = editingCell;
+    const item = data[rowIndex];
     
     
     try {
@@ -125,12 +106,12 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
         await lotApi.updateLotField(item.lot_id, backendField, editValue);
         
         // Update local state
-        const newGroupedData = { ...groupedData };
-        newGroupedData[partyName][rowIndex] = {
-          ...newGroupedData[partyName][rowIndex],
+        const newData = [...data];
+        newData[rowIndex] = {
+          ...newData[rowIndex],
           [field]: field === 'actual_pieces' ? (editValue ? parseInt(editValue) : null) : editValue
         };
-        setGroupedData(newGroupedData);
+        setData(newData);
         
         // Notify parent component that lot was updated
         onLotUpdated?.();
@@ -162,8 +143,8 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
     }
   };
 
-  const renderCell = (item: LotRegisterItem, partyName: string, rowIndex: number, field: string) => {
-    const isEditing = editingCell?.partyName === partyName && editingCell?.rowIndex === rowIndex && editingCell?.field === field;
+  const renderCell = (item: LotRegisterItem, rowIndex: number, field: string) => {
+    const isEditing = editingCell?.rowIndex === rowIndex && editingCell?.field === field;
     const value = item[field as keyof LotRegisterItem];
     
     if (isEditing) {
@@ -189,7 +170,7 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
     return (
       <span 
         className={isEditable ? 'editable-cell' : ''}
-        onClick={() => handleCellClick(partyName, rowIndex, field, value)}
+        onClick={() => handleCellClick(rowIndex, field, value)}
       >
         {displayValue}
       </span>
@@ -220,7 +201,7 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
     );
   }
 
-  if (Object.keys(groupedData).length === 0) {
+  if (data.length === 0) {
     return (
       <div>
         <div style={{ 
@@ -315,7 +296,7 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
             Total Parties:
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-            {Object.keys(groupedData).length}
+            {new Set(data.map(item => item.party_name)).size}
           </div>
         </div>
         <div style={{ 
@@ -346,97 +327,50 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
         </div>
       </div>
 
-      {/* Grouped Data by Party */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {Object.entries(groupedData).map(([partyName, items]) => (
-          <div key={partyName} style={{ 
-            border: '1px solid var(--color-border)', 
-            borderRadius: 'var(--border-radius)', 
-            overflow: 'hidden',
-            backgroundColor: 'var(--color-surface)'
-          }}>
-            {/* Party Header */}
-            <div 
-              style={{
-                backgroundColor: 'var(--color-surface-hover)',
-                padding: '1rem',
-                cursor: 'pointer',
-                transition: 'var(--transition-fast)',
-                borderBottom: expandedParties.has(partyName) ? '1px solid var(--color-border)' : 'none'
-              }}
-              onClick={() => togglePartyExpansion(partyName)}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)', fontWeight: 600 }}>
-                    {expandedParties.has(partyName) ? '▼' : '▶'} {partyName}
-                  </span>
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                    ({items.length} designs)
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                      Total Pieces: {items.reduce((sum, item) => sum + item.total_pieces, 0).toLocaleString()}
-                    </div>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>
-                      Lots: {new Set(items.map(item => item.lot_id).filter(id => id)).size}
-                    </div>
+      {/* Simple Table */}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ backgroundColor: 'var(--color-surface-hover)' }}>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lot No. Date</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Party Name</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lot No.</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Design No.</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quality</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Total Pieces<br/>
+                <span style={{ fontSize: '0.6875rem', fontWeight: 400, textTransform: 'none', color: 'var(--color-text-muted)' }}>(Sets × designs)</span>
+              </th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bill No.</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actual Pieces</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((item, index) => (
+              <tr key={`${item.lot_id}-${item.allocation_id}-${item.design_no}`} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{renderCell(item, index, 'lot_date')}</td>
+                <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{item.party_name}</td>
+                <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{renderCell(item, index, 'lot_no')}</td>
+                <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{item.design_no}</td>
+                <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{item.quality}</td>
+                <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontWeight: 500 }}>{item.total_pieces.toLocaleString()}</span>
+                    {item.sets && item.ground_colors_count && (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                        ({item.sets} × {item.ground_colors_count})
+                      </span>
+                    )}
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Party Items */}
-            {expandedParties.has(partyName) && (
-              <div style={{ overflowX: 'auto' }}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Lot No. Date</th>
-                      <th>Lot No.</th>
-                      <th>Design No.</th>
-                      <th>Quality</th>
-                      <th>
-                        Total Pieces<br/>
-                        <span style={{ fontSize: '0.6875rem', fontWeight: 400, textTransform: 'none', color: 'var(--color-text-muted)' }}>(Sets × designs)</span>
-                      </th>
-                      <th>Bill No.</th>
-                      <th>Actual Pieces</th>
-                      <th>Delivery Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <tr key={`${item.lot_id}-${item.allocation_id}-${item.design_no}`}>
-                        <td>{renderCell(item, partyName, index, 'lot_date')}</td>
-                        <td>{renderCell(item, partyName, index, 'lot_no')}</td>
-                        <td>{item.design_no}</td>
-                        <td>{item.quality}</td>
-                        <td>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontWeight: 500 }}>{item.total_pieces.toLocaleString()}</span>
-                            {item.sets && item.ground_colors_count && (
-                              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                                ({item.sets} × {item.ground_colors_count})
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td>{renderCell(item, partyName, index, 'bill_no')}</td>
-                        <td>{renderCell(item, partyName, index, 'actual_pieces')}</td>
-                        <td>{renderCell(item, partyName, index, 'delivery_date')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        ))}
+                </td>
+                <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{renderCell(item, index, 'bill_no')}</td>
+                <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{renderCell(item, index, 'actual_pieces')}</td>
+                <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{renderCell(item, index, 'delivery_date')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
 
