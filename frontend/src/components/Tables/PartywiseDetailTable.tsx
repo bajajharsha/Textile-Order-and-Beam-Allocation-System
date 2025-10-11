@@ -40,10 +40,21 @@ const PartywiseDetailTable: React.FC<PartywiseDetailTableProps> = ({ refreshTrig
     setExpandedParties(newExpanded);
   };
 
-  // Filter data based on party name
-  const filteredData = data.filter(party => 
-    party.party_name.toLowerCase().includes(filterText.toLowerCase())
-  );
+  // Filter and sort data - show recent entries on top
+  const filteredData = data
+    .filter(party => 
+      party.party_name.toLowerCase().includes(filterText.toLowerCase())
+    )
+    .map(party => ({
+      ...party,
+      items: party.items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    }))
+    .sort((a, b) => {
+      // Sort parties by their most recent item date
+      const aLatestDate = Math.max(...a.items.map(item => new Date(item.date).getTime()));
+      const bLatestDate = Math.max(...b.items.map(item => new Date(item.date).getTime()));
+      return bLatestDate - aLatestDate;
+    });
 
   useEffect(() => {
     fetchData();
@@ -186,30 +197,17 @@ const PartywiseDetailTable: React.FC<PartywiseDetailTableProps> = ({ refreshTrig
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)', fontWeight: 600 }}>
-                    {expandedParties.has(party.party_name) ? '▼' : '▶'} {party.party_name}
-                  </span>
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                    ({party.items.length} orders)
-                  </span>
-                </div>
-                <div style={{ textAlign: 'right', fontSize: '0.8125rem', lineHeight: '1.4' }}>
-                  <div style={{ color: 'var(--color-text-secondary)', marginBottom: '0.25rem' }}>
-                    Total Remaining: {party.total_remaining_pieces.toLocaleString()} pcs
-                  </div>
-                  <div style={{ color: 'var(--color-text-secondary)', marginBottom: '0.25rem' }}>
-                    Total Allocated: {party.total_allocated_pieces.toLocaleString()} pcs
-                  </div>
-                  <div style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
-                    Total Value: {formatCurrency(party.total_value)}
-                  </div>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)', fontWeight: 600 }}>
+                  {expandedParties.has(party.party_name) ? '▼' : '▶'} {party.party_name}
+                </span>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+                  ({party.items.length} orders)
+                </span>
               </div>
-            </div>
+                    </div>
                 
-            {/* Party Items */}
+                {/* Party Items */}
             {expandedParties.has(party.party_name) && (
               <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -240,38 +238,32 @@ const PartywiseDetailTable: React.FC<PartywiseDetailTableProps> = ({ refreshTrig
                         <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{item.bill_no || '-'}</td>
                         <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{item.actual_pcs || '-'}</td>
                         <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{item.delivery_date ? formatDate(item.delivery_date) : '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
             )}
           </div>
         ))}
         </div>
       )}
 
-      {/* Summary Section */}
-      <div className="table-summary">
-        <div className="summary-stats">
-          <div className="stat-item">
-            <span className="stat-label">Total Parties:</span>
-            <span className="stat-value">{filteredData.length}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Total Orders:</span>
-            <span className="stat-value">
-              {filteredData.reduce((sum, party) => sum + party.items.length, 0)}
-            </span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Total Value:</span>
-            <span className="stat-value">
-              {formatCurrency(filteredData.reduce((sum, party) => sum + party.total_value, 0))}
-            </span>
-          </div>
-        </div>
-      </div>
+       {/* Summary Section */}
+       <div className="table-summary">
+         <div className="summary-stats">
+           <div className="stat-item">
+             <span className="stat-label">Total Parties:</span>
+             <span className="stat-value">{filteredData.length}</span>
+           </div>
+           <div className="stat-item">
+             <span className="stat-label">Total Orders:</span>
+             <span className="stat-value">
+               {filteredData.reduce((sum, party) => sum + party.items.length, 0)}
+             </span>
+           </div>
+         </div>
+       </div>
     </div>
   );
 };
