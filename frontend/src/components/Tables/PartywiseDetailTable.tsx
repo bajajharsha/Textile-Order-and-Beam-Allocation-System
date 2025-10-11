@@ -10,6 +10,7 @@ const PartywiseDetailTable: React.FC<PartywiseDetailTableProps> = ({ refreshTrig
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedParties, setExpandedParties] = useState<Set<string>>(new Set());
+  const [filterText, setFilterText] = useState<string>('');
 
   const fetchData = async () => {
     try {
@@ -38,6 +39,11 @@ const PartywiseDetailTable: React.FC<PartywiseDetailTableProps> = ({ refreshTrig
     }
     setExpandedParties(newExpanded);
   };
+
+  // Filter data based on party name
+  const filteredData = data.filter(party => 
+    party.party_name.toLowerCase().includes(filterText.toLowerCase())
+  );
 
   useEffect(() => {
     fetchData();
@@ -108,14 +114,59 @@ const PartywiseDetailTable: React.FC<PartywiseDetailTableProps> = ({ refreshTrig
         }}>
           Partywise Detail Report
         </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Filter by party name..."
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              style={{
+                padding: '0.5rem 1rem',
+                paddingLeft: '2.5rem',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--border-radius)',
+                backgroundColor: 'var(--color-surface)',
+                color: 'var(--color-text-primary)',
+                fontSize: '0.875rem',
+                width: '250px',
+                outline: 'none'
+              }}
+            />
+            <span style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--color-text-secondary)',
+              fontSize: '0.875rem'
+            }}>
+              🔍
+            </span>
+          </div>
           <button onClick={fetchData} className="btn btn-secondary">
             Refresh
           </button>
+        </div>
       </div>
 
       {/* Grouped Data by Party */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {data.map((party) => (
+      {filteredData.length === 0 ? (
+        <div style={{
+          padding: '2rem',
+          textAlign: 'center',
+          color: 'var(--color-text-secondary)',
+          backgroundColor: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--border-radius)'
+        }}>
+          <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            {filterText ? `No parties found matching "${filterText}"` : 'No party data available'}
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {filteredData.map((party) => (
           <div key={party.party_name} style={{ 
             border: '1px solid var(--color-border)', 
             borderRadius: 'var(--border-radius)', 
@@ -197,25 +248,26 @@ const PartywiseDetailTable: React.FC<PartywiseDetailTableProps> = ({ refreshTrig
             )}
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Summary Section */}
       <div className="table-summary">
         <div className="summary-stats">
           <div className="stat-item">
             <span className="stat-label">Total Parties:</span>
-            <span className="stat-value">{data.length}</span>
+            <span className="stat-value">{filteredData.length}</span>
           </div>
           <div className="stat-item">
             <span className="stat-label">Total Orders:</span>
             <span className="stat-value">
-              {data.reduce((sum, party) => sum + party.items.length, 0)}
+              {filteredData.reduce((sum, party) => sum + party.items.length, 0)}
             </span>
           </div>
           <div className="stat-item">
             <span className="stat-label">Total Value:</span>
             <span className="stat-value">
-              {formatCurrency(data.reduce((sum, party) => sum + party.total_value, 0))}
+              {formatCurrency(filteredData.reduce((sum, party) => sum + party.total_value, 0))}
             </span>
           </div>
         </div>
