@@ -41,6 +41,30 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
     loadDropdownData();
   }, []);
 
+  // Pre-fill form when editOrder is provided
+  useEffect(() => {
+    if (editOrder) {
+      setFormData({
+        party_id: editOrder.party_id?.toString() || '',
+        quality_id: editOrder.quality_id?.toString() || '',
+        sets: editOrder.sets?.toString() || '',
+        pick: editOrder.pick?.toString() || '',
+        lot_register_type: editOrder.lot_register_type || 'High Speed',
+        cuts: editOrder.cuts || [],
+        design_numbers: editOrder.design_numbers || [''],
+        rate_per_piece: editOrder.rate_per_piece?.toString() || '',
+        notes: editOrder.notes || ''
+      });
+      
+      // Pre-fill ground colors
+      if (editOrder.ground_colors && editOrder.ground_colors.length > 0) {
+        setGroundColors(editOrder.ground_colors);
+      } else {
+        setGroundColors([{ ground_color_name: '', beam_color_id: 0 }]);
+      }
+    }
+  }, [editOrder]);
+
    const loadDropdownData = async () => {
      try {
        const response = await masterApi.getDropdownData();
@@ -164,32 +188,42 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
         notes: formData.notes || undefined
       };
 
-      const response = await orderApi.create(orderData);
-      console.log('Order created:', response.data);
+      let response;
+      if (editOrder) {
+        // Update existing order
+        response = await orderApi.update(editOrder.id, orderData);
+        console.log('Order updated:', response.data);
+        alert('Order updated successfully!');
+      } else {
+        // Create new order
+        response = await orderApi.create(orderData);
+        console.log('Order created:', response.data);
+        alert('Order created successfully!');
+      }
       
       if (onOrderCreated) {
         onOrderCreated(response.data);
       }
       
-      alert('Order created successfully!');
-      
-      // Reset form
-      setFormData({
-        party_id: '',
-        quality_id: '',
-        sets: '',
-        pick: '',
-        lot_register_type: 'High Speed', // Reset to default value
-        cuts: [],
-        design_numbers: [''],
-        rate_per_piece: '',
-        notes: ''
-      });
-      setGroundColors([{ ground_color_name: '', beam_color_id: 0 }]);
+      // Reset form only if not editing
+      if (!editOrder) {
+        setFormData({
+          party_id: '',
+          quality_id: '',
+          sets: '',
+          pick: '',
+          lot_register_type: 'High Speed', // Reset to default value
+          cuts: [],
+          design_numbers: [''],
+          rate_per_piece: '',
+          notes: ''
+        });
+        setGroundColors([{ ground_color_name: '', beam_color_id: 0 }]);
+      }
       
     } catch (error: any) {
-      console.error('Error creating order:', error);
-      alert('Failed to create order. Please try again.');
+      console.error('Error saving order:', error);
+      alert(`Failed to ${editOrder ? 'update' : 'create'} order. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -511,12 +545,12 @@ const OrderForm: React.FC<OrderFormProps> = ({ onOrderCreated, editOrder, onCanc
             {loading ? (
               <>
                 <div className="loading"></div>
-                Creating Order...
+                {editOrder ? 'Updating Order...' : 'Creating Order...'}
               </>
             ) : (
               <>
                 <ShoppingCart size={16} />
-                Create Order
+                {editOrder ? 'Update Order' : 'Create Order'}
               </>
             )}
           </button>
