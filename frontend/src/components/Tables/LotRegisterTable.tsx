@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { lotApi, LotRegisterItem } from '../../services/api';
-import LotCreationForm from '../Forms/LotCreationForm';
 import SetBasedLotCreationForm from '../Forms/SetBasedLotCreationForm';
 
 interface LotRegisterTableProps {
@@ -21,9 +20,7 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
   const [editingCell, setEditingCell] = useState<{ partyName: string; rowIndex: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [expandedParties, setExpandedParties] = useState<Set<string>>(new Set());
-  const [showLotForm, setShowLotForm] = useState(false);
   const [showSetBasedLotForm, setShowSetBasedLotForm] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -59,19 +56,7 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
     fetchData();
   }, [refreshTrigger, fetchData]);
 
-  const handleCreateLot = (order: any) => {
-    setSelectedOrder(order);
-    setShowLotForm(true);
-  };
 
-  const handleLotCreated = () => {
-    setShowLotForm(false);
-    setSelectedOrder(null);
-    fetchData();
-    if (onLotUpdated) {
-      onLotUpdated();
-    }
-  };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
@@ -393,15 +378,6 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCreateLot(items[0]);
-                    }}
-                    className="btn btn-primary btn-sm"
-                  >
-                    Create New Lot
-                  </button>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
                       Total Pieces: {items.reduce((sum, item) => sum + item.total_pieces, 0).toLocaleString()}
@@ -463,27 +439,6 @@ const LotRegisterTable: React.FC<LotRegisterTableProps> = ({ refreshTrigger = 0,
         ))}
       </div>
 
-      {/* Lot Creation Form Modal (Old System) */}
-      {showLotForm && selectedOrder && (
-        <LotCreationForm
-          orderId={selectedOrder.order_id}
-          orderNumber={selectedOrder.order_number}
-          partyName={selectedOrder.party_name}
-          qualityName={selectedOrder.quality}
-                 designs={[
-                   {
-                     design_number: selectedOrder.design_no,
-                     remaining_pieces: selectedOrder.remaining_pieces || selectedOrder.total_pieces,
-                     original_pieces: selectedOrder.total_pieces
-                   }
-                 ]}
-          onLotCreated={handleLotCreated}
-          onCancel={() => {
-            setShowLotForm(false);
-            setSelectedOrder(null);
-          }}
-        />
-      )}
 
       {/* Set-Based Lot Creation Form Modal (New System) */}
       {showSetBasedLotForm && (
